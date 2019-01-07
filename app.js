@@ -108,8 +108,29 @@ bot.on('message', msg => {
             msg.member.roles.has('445404235190894613')
             || msg.member.roles.has('345445124580442113')
           ) {
-            cmds.run.runScenario(msg, content);
+            cmds.run.runScenario(msg, content)
+            .then((log) => {
+              console.log(log);
+              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
+            })
+            .catch(err => {
+              console.log(err);
+              logger.writeLog(err, `${config.errlogs}/run`);
+            });
           };
+        }
+        else if (['kill', 'stop'].includes(cmd)) {
+          if (msg.member.roles.has(config.gatekeeper)) {
+            cmds.kill.killServer(msg, content)
+            .then((log) => {
+              console.log(log);
+              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
+            })
+            .catch(err => {
+              console.log(err);
+              logger.writeLog(err, `${config.errlogs}/kill`);
+            });
+          }
         }
         /**else if (['devcheck', 'check'].includes(cmd)) {
           orct2web.getHash('lnc', config.lncuri)
