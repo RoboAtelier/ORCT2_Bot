@@ -1,59 +1,64 @@
 /** Manages hosted OpenRCT2 servers
  * @module orct2server
- * @requires child_process
+ * @requires fs, child_process
  */
+const { readFileSync } = require('fs');
 const { spawn, exec } = require('child_process');
+const { config } = require('../config');
 
-let servers = {
-  s1: '',
-  s2: '',
-};
+let servers = {};
 
 /**
- * Runs a OpenRCT2 server with a given scenario and port
+ * Runs a OpenRCT2 server with a given scenario.
  * 
  * @async
  * @function
- * @param {string} scenario file to load
- * @param {string} server port number
+ * @param {string} scenario - Scenario file to load
+ * @param {number} server - Server number
+ * @param {string} [path] - Path to server directory containing config.ini
  */
-async function runServer(scenario, port) {
-  const childProcess = await spawn(
-    'openrct2',
-    [
+async function runOpenRCT2Server(scenario, server, path=config.openrct2) {
+  try {
+    let options = [
       'host',
       `/home/dev_user/Documents/botspace/ORCT2_Bot/scenarios/${scenario}`,
       '--port',
-      port,
-    ]
-  );
-  if (port === '5968') {
-    servers.s1 = childProcess.pid;
+    ];
+    const serverConfig = readFileSync(`${path}/config.ini`, 'utf8').split(/\r\n|\n/);
+    const port = serverConfig.find(line => {
+      return line.startsWith('default_port')
+    });
+    options.push(port);
+    if (server > 1) {
+      options.push('--user-data-path');
+      options.push(path);
+    };
+    const childProcess = await spawn('openrct2', options);
+    servers[server] = childProcess.pid;
+    console.log(servers[server]);
   }
-  else if (port === '4802') {
-    servers.s2 = childProcess.pid;
-  };
+  catch(err) {
+    throw err;
+  }
 };
 
 /**
- * Kills a running OpenRCT2 server
+ * Kills a running OpenRCT2 server.
  * 
  * @async
  * @function
  * @param {number} server number to kill
  */
-async function killServer(number) {
-  if (number === 1) {
-    await spawn(`kill`, [servers.s1]);
-    servers.s1 = '';
+async function killOpenRCT2Server(server) {
+  try {
+    await spawn(`kill`, [servers[server]]);
   }
-  else if (number === 2) {
-    await spawn(`kill`, [servers.s2]);
-    servers.s2 = '';
+  catch(err) {
+    throw err;
   };
 };
 
 module.exports = {
-  run: runServer,
-  kill: killServer,
+  runServer: runOpenRCT2Server,
+  killServer: killOpenRCT2Server,
 };

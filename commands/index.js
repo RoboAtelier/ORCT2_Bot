@@ -1,9 +1,8 @@
 module.exports = {
   checkver: require('./checkver'),
   isup: require('./isup'),
-  kill: require('./kill'),
-  move: require('./move'),
   scenarios: require('./scenarios'),
-  run: require('./run'),
+  svrconfig: require('./svrconfig'),
+  svrops: require('./svrops'),
   vote: require('./vote'),
 };

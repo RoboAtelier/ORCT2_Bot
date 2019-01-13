@@ -17,7 +17,7 @@ bot.on('message', msg => {
   ) {
     let contentSlice = msg.content.split(' ');
     let cmdSlice = contentSlice.splice(0, 1);
-    let content = contentSlice.join(' ');
+    let content = contentSlice.join(' ').trim();
     let cmd = cmdSlice[0].substring(1).toLowerCase();
     
     logger.writeLog(
@@ -73,7 +73,7 @@ bot.on('message', msg => {
           });
         }
         else if (['discard', 'remove', 'delete', 'del', 'rm'].includes(cmd)) {
-          cmds.move.moveScenario(msg, content, 'discard')
+          cmds.scenarios.moveScenario(msg, content, 'discard')
           .then(log => {
             logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
           })
@@ -83,7 +83,7 @@ bot.on('message', msg => {
           });
         }
         else if (['restore', 'res'].includes(cmd)) {
-          cmds.move.moveScenario(msg, content, 'restore')
+          cmds.scenarios.moveScenario(msg, content, 'restore')
           .then(log => {
             logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
           })
@@ -103,40 +103,114 @@ bot.on('message', msg => {
             logger.writeLog(err, `${config.errlogs}/vote`);
           });
         }
+        else if (['cancelmap', 'cncmap'].includes(cmd)) {
+          cmds.vote.cancelScenarioVote(msg, content)
+          .then((log) => {
+            console.log(log);
+            logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
+          })
+          .catch(err => {
+            console.log(err);
+            logger.writeLog(err, `${config.errlogs}/vote`);
+          });
+        }
         else if (['changemap', 'run'].includes(cmd)) {
           if (
-            msg.member.roles.has('445404235190894613')
-            || msg.member.roles.has('345445124580442113')
+            msg.member.roles.has(config.entrepreneur)
+            || msg.member.roles.has(config.gatekeeper)
+            || msg.member.roles.has(config.operator)
           ) {
-            cmds.run.runScenario(msg, content)
+            cmds.svrops.runScenario(msg, content)
             .then((log) => {
               console.log(log);
               logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
             })
             .catch(err => {
               console.log(err);
-              logger.writeLog(err, `${config.errlogs}/run`);
+              logger.writeLog(err, `${config.errlogs}/serverops`);
             });
           };
         }
         else if (['kill', 'stop'].includes(cmd)) {
-          if (msg.member.roles.has(config.gatekeeper)) {
-            cmds.kill.killServer(msg, content)
+          if (
+            msg.member.roles.has(config.gatekeeper)
+            || msg.member.roles.has(config.operator)
+          ) {
+            cmds.svrops.killServer(msg, content)
             .then((log) => {
               console.log(log);
               logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
             })
             .catch(err => {
               console.log(err);
-              logger.writeLog(err, `${config.errlogs}/kill`);
+              logger.writeLog(err, `${config.errlogs}/serverops`);
             });
           }
         }
-        /**else if (['devcheck', 'check'].includes(cmd)) {
-          orct2web.getHash('lnc', config.lncuri)
-          .then((hash) => {console.log(hash);})
-          .catch((err) => {console.log(err);});
-        };*/
+        else if (['config', 'conf'].includes(cmd)) {
+          if (
+            msg.member.roles.has(config.gatekeeper)
+            || msg.member.roles.has(config.operator)
+          ) {
+            cmds.svrconfig.showConfig(msg, content)
+            .then((log) => {
+              console.log(log);
+              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
+            })
+            .catch(err => {
+              console.log(err);
+              logger.writeLog(err, `${config.errlogs}/serverfiles`)
+            });
+          }
+        }
+        else if (['editconfig', 'editconf', 'chconf'].includes(cmd)) {
+          if (
+            msg.member.roles.has(config.gatekeeper)
+            || msg.member.roles.has(config.operator)
+          ) {
+            cmds.svrconfig.editServer(msg, content)
+            .then((log) => {
+              console.log(log);
+              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
+            })
+            .catch(err => {
+              console.log(err);
+              logger.writeLog(err, `${config.errlogs}/serverfiles`)
+            });
+          }
+        }
+        else if (['users', 'usrs'].includes(cmd)) {
+          if (
+            msg.member.roles.has(config.gatekeeper)
+            || msg.member.roles.has(config.operator)
+          ) {
+            cmds.svrfiles.showUsers(msg, content)
+            .then((log) => {
+              console.log(log);
+              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
+            })
+            .catch(err => {
+              console.log(err);
+              logger.writeLog(err, `${config.errlogs}/serverfiles`)
+            });
+          }
+        }
+        else if (['groups', 'grps'].includes(cmd)) {
+          if (
+            msg.member.roles.has(config.gatekeeper)
+            || msg.member.roles.has(config.operator)
+          ) {
+            cmds.svrfiles.showGroups(msg, content)
+            .then((log) => {
+              console.log(log);
+              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
+            })
+            .catch(err => {
+              console.log(err);
+              logger.writeLog(err, `${config.errlogs}/serverfiles`)
+            });
+          };
+        };
       };
     })
     .catch(err => {
@@ -152,5 +226,4 @@ bot.on('error', err => {
 //Load config parameters
 cmds.isup.loadGTWIPv4s([config.server1ipv4, config.server2ipv4]);
 cmds.scenarios.loadPaths(config.scenarios, config.discard);
-cmds.move.loadPaths(config.scenarios, config.discard);
 bot.login(config.token);
