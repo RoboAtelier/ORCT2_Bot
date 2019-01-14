@@ -151,7 +151,8 @@ async function startScenarioVote(msg, content) {
     for (let i = 0; i < 10; i++) {
       choiceString = `${choiceString}${voteEmojis[i]} | ${voteChoices[i].substring(0, voteChoices[i].length - 4)}\n`
     };
-    const voteMsg = await msg.channel.send(`Choose the next scenario:\n\n${choiceString}${voteEmojis[10]} | New selection of maps`);
+    const voteMsg = await msg.guild.channels.get(config.mainchannel).send(`Choose the next scenario:\n\n${choiceString}${voteEmojis[10]} | New selection of maps`);
+    await msg.channel.send(`Started vote at #main-lobby.`);
     
     //Initiate voting
     scenarioVote.active = true;

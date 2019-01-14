@@ -74,12 +74,12 @@ async function runNewServerScenario(msg, content) {
           scenarioChange.session = null;
           await killServer(1);
           await runServer(results[0], server, serverDir);
-          //msg.guild.channels.get(config.mainchannel).send('Starting **${results[0].substring(0, results[0].length - 4)}** on server #${server}!');
+          await msg.guild.channels.get(config.mainchannel).send(`Starting **${results[0].substring(0, results[0].length - 4)}** on Server #${server}!`);
           await msg.channel.send(`Now running **${results[0].substring(0, results[0].length - 4)}** on Server #${server}.`);
         }, 10000);
-        //await msg.guild.channels.get(config.mainchannel).send('Server map will change in 10 seconds.');
+        await msg.guild.channels.get(config.mainchannel).send('Server map will change in 10 seconds.');
         await msg.channel.send('Server map will change in 10 seconds.');
-        return `Successfully entered intermission to change server scenario to \'${results[0].substring(0, results[0].length - 4)}\' on Server #${server}.`;
+        return `Successfully entered intermission to change server scenario to '${results[0].substring(0, results[0].length - 4)}' on Server #${server}.`;
       }
       else if (
         msg.member.roles.has(config.gatekeeper)
@@ -91,9 +91,9 @@ async function runNewServerScenario(msg, content) {
         };
         await killServer(1);
         await runServer(results[0], server, serverDir);
-        //await msg.guild.channels.get(config.mainchannel).send('Starting **${results[0].substring(0, results[0].length - 4)}** on server #${server}!');
+        await msg.guild.channels.get(config.mainchannel).send(`Starting **${results[0].substring(0, results[0].length - 4)}** on Server #${server}!`);
         await msg.channel.send(`Running **${results[0].substring(0, results[0].length - 4)}** on Server #${server}.`);
-        return `Successfully loaded \'${results[0].substring(0, results[0].length - 4)}\' on Server #${server}.`;
+        return `Successfully loaded '${results[0].substring(0, results[0].length - 4)}' on Server #${server}.`;
       };
     };
   }
