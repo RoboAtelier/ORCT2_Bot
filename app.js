@@ -20,8 +20,10 @@ bot.on('message', msg => {
     let content = contentSlice.join(' ').trim();
     let cmd = cmdSlice[0].substring(1).toLowerCase();
     
+    const usrlog = `${msg.author.username} attempted to call '${cmd}' on #${msg.channel.name} (ID:${msg.channel.id}).`;
+    console.log(usrlog);
     logger.writeLog(
-      `${msg.author.username} attempted to call \'${cmd}\' on #${msg.channel.name} (ID:${msg.channel.id}).`,
+      usrlog,
       `${config.userlogs}/${msg.author.id}-${msg.author.username}`
     )
     .then(() => {
@@ -116,11 +118,28 @@ bot.on('message', msg => {
         }
         else if (['changemap', 'run'].includes(cmd)) {
           if (
-            msg.member.roles.has(config.entrepreneur)
-            || msg.member.roles.has(config.gatekeeper)
-            || msg.member.roles.has(config.operator)
+            msg.member.roles.has(config.mod)
+            || msg.member.roles.has(config.admin)
+            || msg.member.roles.has(config.owner)
           ) {
-            cmds.svrops.runScenario(msg, content)
+            cmds.svrops.run(msg, content)
+            .then((log) => {
+              console.log(log);
+              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
+            })
+            .catch(err => {
+              console.log(err);
+              logger.writeLog(err, `${config.errlogs}/serverops`);
+            });
+          };
+        }
+        else if (['restart'].includes(cmd)) {
+          if (
+            msg.member.roles.has(config.mod)
+            || msg.member.roles.has(config.admin)
+            || msg.member.roles.has(config.owner)
+          ) {
+            cmds.svrops.run(msg, `-a ${content}`)
             .then((log) => {
               console.log(log);
               logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
@@ -133,10 +152,10 @@ bot.on('message', msg => {
         }
         else if (['kill', 'stop'].includes(cmd)) {
           if (
-            msg.member.roles.has(config.gatekeeper)
-            || msg.member.roles.has(config.operator)
+            msg.member.roles.has(config.admin)
+            || msg.member.roles.has(config.owner)
           ) {
-            cmds.svrops.killServer(msg, content)
+            cmds.svrops.kill(msg, content)
             .then((log) => {
               console.log(log);
               logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
@@ -149,8 +168,8 @@ bot.on('message', msg => {
         }
         else if (['config', 'conf'].includes(cmd)) {
           if (
-            msg.member.roles.has(config.gatekeeper)
-            || msg.member.roles.has(config.operator)
+            msg.member.roles.has(config.admin)
+            || msg.member.roles.has(config.owner)
           ) {
             cmds.svrconfig.showConfig(msg, content)
             .then((log) => {
@@ -165,8 +184,8 @@ bot.on('message', msg => {
         }
         else if (['editconfig', 'editconf', 'chconf'].includes(cmd)) {
           if (
-            msg.member.roles.has(config.gatekeeper)
-            || msg.member.roles.has(config.operator)
+            msg.member.roles.has(config.admin)
+            || msg.member.roles.has(config.owner)
           ) {
             cmds.svrconfig.editServer(msg, content)
             .then((log) => {
@@ -181,8 +200,8 @@ bot.on('message', msg => {
         }
         else if (['users', 'usrs'].includes(cmd)) {
           if (
-            msg.member.roles.has(config.gatekeeper)
-            || msg.member.roles.has(config.operator)
+            msg.member.roles.has(config.admin)
+            || msg.member.roles.has(config.owner)
           ) {
             cmds.svrfiles.showUsers(msg, content)
             .then((log) => {
@@ -197,8 +216,8 @@ bot.on('message', msg => {
         }
         else if (['groups', 'grps'].includes(cmd)) {
           if (
-            msg.member.roles.has(config.gatekeeper)
-            || msg.member.roles.has(config.operator)
+            msg.member.roles.has(config.admin)
+            || msg.member.roles.has(config.owner)
           ) {
             cmds.svrfiles.showGroups(msg, content)
             .then((log) => {

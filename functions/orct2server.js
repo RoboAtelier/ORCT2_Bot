@@ -2,7 +2,7 @@
  * @module orct2server
  * @requires fs, child_process
  */
-const { readFileSync } = require('fs');
+const { readFileSync, readdirSync, statSync } = require('fs');
 const { spawn, exec } = require('child_process');
 const { config } = require('../config');
 
@@ -21,7 +21,7 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2) {
   try {
     let options = [
       'host',
-      `/home/dev_user/Documents/botspace/ORCT2_Bot/scenarios/${scenario}`,
+      `${config.scenarios}/${scenario}`,
       '--port',
     ];
     const serverConfig = readFileSync(`${path}/config.ini`, 'utf8').split(/\r\n|\n/);
@@ -29,6 +29,28 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2) {
       return line.startsWith('default_port')
     });
     options.push(port);
+    if (scenario.startsWith('AUTOSAVE')) {
+      const check = readdirSync(`${path}/save`, 'utf8').find(file => {
+        return file === 'autosave';
+      });
+      if (check === undefined) {
+        return false;
+      };
+      let latest = '';
+      let latestTime = new Date(0);
+      const autosaves = readdirSync(`${path}/save/autosave`, 'utf8');
+      if (autosaves.length === 0) {
+        return false;
+      };
+      for (let i = 0; i < autosaves.length; i++) {
+        const time = statSync(`${path}/save/autosave/${autosaves[i]}`).ctime;
+        if (time > latestTime) {
+          latest = autosaves[i];
+          latestTime = time;
+        };
+      };
+      options[1] = `${path}/save/autosave/${latest}`;
+    };
     if (server > 1) {
       options.push('--user-data-path');
       options.push(path);
@@ -36,6 +58,7 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2) {
     const childProcess = await spawn('openrct2', options);
     servers[server] = childProcess.pid;
     console.log(servers[server]);
+    return true;
   }
   catch(err) {
     throw err;

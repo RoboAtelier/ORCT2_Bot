@@ -89,7 +89,7 @@ async function testConfigurationSettingInput(setting, value) {
   }
   else if (
     [
-      'test_unfinished tracks',
+      'test_unfinished_tracks',
       'advertise',
       'known_keys_only',
       'log_chat',
@@ -503,9 +503,8 @@ async function editServerConfiguration(msg, content) {
         value = input.slice(input.slice(1).indexOf('"') + 2).trim();
       }
       else {
-        const inputSplit = input.split(' ');
-        search = inputSplit[0];
-        value = inputSplit[1];
+        search = input.slice(1, input.slice(1).indexOf(' ') + 1);
+        value = input.slice(input.slice(1).indexOf(' ') + 2).trim();
       };
       search = search.split(' ').join('_').toLowerCase();
       let setting = configurations.find(configName => {
@@ -521,7 +520,7 @@ async function editServerConfiguration(msg, content) {
               [
                 'autosave',
                 'debugging_tools',
-                'test_unfinished tracks',
+                'test_unfinished_tracks',
                 'advertise',
                 'known_keys_only',
                 'log_chat',
