@@ -4,121 +4,105 @@
  */
 const { readdir, rename } = require('fs');
 const { config } = require('../config');
-
-let scenarioDir = '';
-let discardDir = '';
+const { getScenarios } = require('../functions/reader');
 
 /**
- * Load scenario directory paths
+ * Shows multiplayer scenarios in a directory.
+ * 
+ * @async
  * @function
- * @param {string} scenario directory path
- * @param {string} discard directory path
- */
-function loadScenarioDirectoryPaths(spath, dpath) {
-  scenarioDir = spath;
-  discardDir = dpath;
-};
-
-/**
- * Lists multiplayer scenarios in a directory
- * @function
- * @param {Message} Discord message object
- * @param {string} message contents
+ * @param {Message} msg - Discord message object
+ * @param {string} content - Message contents
  * @returns {string} log entry
  */
-function listScenarios(msg, content) {
-  let page = 1;
-  let pages = 1;
-  let params = content;
-  let search = '';
+async function showScenarios(msg, content) {
   let option = '';
-  let startDir = scenarioDir;
-  if (params.length > 0) {
-    
-    //Load option
-    if (params.startsWith('-')) {
-      let paramSlice = content.split(' ');
-      let optionSlice = paramSlice.splice(0, 1);
-      params = paramSlice.join(' ');
-      option = optionSlice[0];
-    };
-    
-    //Search by page
-    if (/^[0-9]+$/.test(params)) {
-      page = parseInt(params);
-    }
-    
-    //Search by name
-    else if (params.length > 0) {
-      search = params.toLowerCase();
-    };
-  };
-  if (option === '-d') {
-    startDir = discardDir;
-  }
-  return new Promise((resolve, reject) => {
-    readdir(startDir, (err, files) => {
-      if (err) {
-        msg.channel.send('Something went wrong while reading files.');
-        reject(err);
-      };
-      
-      //Get first 40 potential matches
-      if (search.length > 0) {
-        let total = 0;
-        resolve(
-          files.filter(file => {
-            if (file.toLowerCase().includes(search) && total < 40) {
-              total = total + 1;
-              return true;
-            };
-          })
-        );
-      };
-      pages = Math.ceil(files.length / 20);
-      if (page > pages || page < 1) {
-        msg.channel.send(`Invalid page index. Must be between within 1 and ${pages}`);
-        reject(`Invalid page index given by ${msg.author.username}.`)
-      };
-      
-      //Retrieve sections of 20 scenarios (pages)
-      resolve(files.splice((20*(page - 1)), 20));
-    });
-  })
-  .then(files => {
-    let count = 0;
-    let scenarios = files.filter(file => {
-      return (
-        file.toLowerCase().endsWith('.sc6')
-        || file.toLowerCase().endsWith('.sv6')
-        || file.toLowerCase().endsWith('.sc4')
-      );
-    })
-    .map(scenario => {
-      count = count + 1;
-      return `${count}.) ${scenario}`;
-    })
-    .join('\n');
-    if (scenarios.length === 0) {
-      msg.channel.send('No scenarios found!');
-      return 'Successfully attempted to retrieve scenarios.';
+  let search = '';
+  let page = 1;
+  let input = content;
+  let scenarioDir = config.scenarios;
+
+  //Get option
+  if (input.startsWith('-d') || input.startsWith('--discarded')) {
+    if (input.includes(' ')) {
+      option = input.slice(0, input.indexOf(' '));
+      input = input.slice(input.indexOf(' ') + 1).trim();
     }
     else {
-      if (option === '-d') {
-        scenarios = `Discarded Scenarios:\n\n${scenarios}`;
-      }
-      else {
-        scenarios = `Available Scenarios:\n\n${scenarios}`;
-      };
-      if (search.length > 0) {
-        msg.channel.send(`${scenarios}\n\nNote: *40 search results maximum*`);
-      }
-      else {
-        msg.channel.send(`${scenarios}\n\nPage: *${page}/${pages}*`);
-      };
-      return 'Successfully retrieved scenarios.';
+      option = input;
+      input = '';
     };
-  });
+    scenarioDir = config.discard;
+  };
+
+  //Find scenarios
+  let results = [];
+  if (/^'[^']+'|^"[^"]+"/.test(input)) {
+    if (/^'[^']+' /.test(input)) {
+      search = input.slice(1, input.slice(1).indexOf('\'') + 1);
+      input = input.slice(input.slice(1).indexOf(' ') + 1).trim();
+    }
+    else if (/^"[^"]+" /.test(input)) {
+      search = input.slice(1, input.slice(1).input.indexOf('"') + 1);
+      input = input.slice(input.slice(1).indexOf(' ') + 1).trim();
+    }
+    else if (input.includes('\'')) {
+      search = input.slice(1, input.slice(1).indexOf('\'') + 1);
+    }
+    else if (input.includes('"')) {
+      search = input.slice(1, input.slice(1).indexOf('"') + 1);
+    };
+    let scenarios = await getScenarios(scenarioDir);
+    results = scenarios.filter(scenario => {
+      return scenario.slice(0, scenario.length - 4).toLowerCase() === search.toLowerCase();
+    });
+    if (results.length === 0) {
+      results = await getScenarios(scenarioDir, search);
+    };
+  }
+  else if (input.includes(' ')) {
+    search = input.slice(0, input.indexOf(' '));
+    input = input.slice(input.substring(1).indexOf(' ') + 1).trim();
+    results = await getScenarios(scenarioDir, search);
+  }
+  else if (/^[^1-9][^0-9]*/.test(input)) {
+    search = input;
+    input = '';
+    results = await getScenarios(scenarioDir, search);
+  }
+  else {
+    results = await getScenarios();
+  };
+  if (results.length === 0) {
+    await msg.channel.send(`No scenarios found with '${search}'.`);
+    return 'Attempted to retrieve scenarios. No scenarios found with given input.';
+  };
+
+  //Get scenario set page
+  if (/^[1-9][0-9]*$/.test(input)) {
+    page = parseInt(input);
+  };
+  const pages = Math.ceil(results.length/20);
+  if (page > pages || pages < 1) {
+    await msg.channel.send(pages === 1
+    ? 'There is only one page.'
+    : `Valid pages are between 1 and ${pages} for '${search}'.`);
+    return 'Attempted to display registered users. Invalid page entered.';
+  };
+
+  //Format message
+  let count = 0;
+  let scenarioString = results.splice((20*(page - 1)), 20)
+  .map(scenario => {
+    count = count + 1;
+    return `${count}.) ${scenario}`;
+  })
+  .join('\n');
+  scenarioString = option === '-d' || option === '--discarded'
+  ? `Discarded Scenarios:\n\n${scenarioString}`
+  : `Available Scenarios:\n\n${scenarioString}`;
+  await msg.channel.send(`${scenarioString}\n\nPage: *${page}/${pages}*`);
+  return 'Successfully retrieved scenarios.';
 };
 
 /**
@@ -202,7 +186,6 @@ function moveScenario(msg, content, action) {
 };
 
 module.exports = {
-  loadPaths: loadScenarioDirectoryPaths,
-  listScenarios,
+  showScenarios,
   moveScenario,
 };

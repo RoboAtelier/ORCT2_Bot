@@ -5,13 +5,13 @@
 const rp = require('request-promise')
 
 /**
- * Makes a JSON request to OpenRCT2 master server
- * to check server status.
+ * Makes a JSON request to OpenRCT2 master server to check server status.
+ * 
  * @function
  * @param {string[]} inputs to check
  * @returns {Object.<string, Object[]>} public servers found and input
  */
-function checkServerStatus (inputs) {
+async function getServerStatus(inputs) {
 
   //Header necessary to make JSON requests
   let options = {
@@ -21,55 +21,45 @@ function checkServerStatus (inputs) {
     },
     json: true
   };
-  return rp(options)
-  .then(json => {
-    if (inputs.length > 0) {
-      let successes = [];
-      const servers = json.servers.filter(server => {
-        
-        //Search by IPv4
-        if (
-          inputs.includes(server.ip.v4[0])
-          || inputs.includes(`${server.ip.v4[0]}:${String(server.port)}`)
-        ) {
-          if (inputs.includes(server.ip.v4[0]) && !successes.includes(server.ip.v4[0])) {
-            successes.push(server.ip.v4[0]);
+  let json = await rp(options);
+  if (inputs.length > 0) {
+    let successes = [];
+    const servers = json.servers.filter(server => {
+      if (inputs.includes(server.ip.v4[0])) {
+        successes.push(server.ip.v4[0]);
+        return true;
+      }
+      else if (inputs.includes(`${server.ip.v4[0]}:${String(server.port)}`)) {
+        successes.push(`${server.ip.v4[0]}:${server.port}`)
+        return true;
+      }
+      else {
+        let found = false;
+        for (let i = 0; i < inputs.length; i++) {
+          if (server.name.toLowerCase().includes(inputs[i])) {
+            successes.push(inputs[i]);
+            found = true;
+            break;
           }
-          else if (
-            inputs.includes(`${server.ip.v4[0]}:${server.port}`)
-            && !successes.includes(`${server.ip.v4[0]}:${server.port}`)
-          ) {
-            successes.push(`${server.ip.v4[0]}:${server.port}`);
-          };
-          return true;
         }
-        else {
-          
-          //Search by (part of a) name
-          return inputs.filter(input => {
-            if (server.name.toLowerCase().includes(input)) {
-              if (!successes.includes(input)) {
-                successes.push(input);
-              };
-              return true;
-            };
-          })[0];
+        if (found === true) {
+          return true;
         };
-      });
-      return {
-        servers,
-        successes,
       };
+    });
+    return {
+      servers,
+      successes,
     };
-    
-    //If no inputs are sent
+  }
+  else {
     return {
       servers: [],
       successes: [],
     };
-  });
+  };
 };
 
 module.exports = {
-  checkServer: checkServerStatus
+  getServerStatus
 };

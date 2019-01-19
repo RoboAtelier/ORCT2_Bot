@@ -2,7 +2,7 @@
  * @module logger
  * @requires fs
  */
-const fs = require('fs');
+const { createWriteStream } = require('fs');
 
 /**
  * Write to log file.
@@ -11,13 +11,16 @@ const fs = require('fs');
  * @param {string} path to log file
  * @returns {number} indicates successful action
  */
-function writeToLogFile(log, path) {
-  return new Promise((resolve, reject) => {
-    let ws = fs.createWriteStream(path, { flags: 'a' });
+async function writeToLogFile(log, path) {
+  try {
+    let ws = createWriteStream(path, { flags: 'a' });
     ws.write(`[${new Date().toISOString().replace('T', ' ').substring(0, 19)}] ${log}\n`);
     ws.end();
-    resolve(1);
-  })
+    return 1;
+  }
+  catch(err) {
+    throw err;
+  };
 };
 
 /**
@@ -27,17 +30,20 @@ function writeToLogFile(log, path) {
  * @param {string[]} paths to log files
  * @returns {number} number of successful actions
  */
-function writeToMultipleLogFiles(log, paths) {
-  let successes = 0;
-  return new Promise((resolve, reject) => {
-    paths.forEach(path => {
-      let ws = fs.createWriteStream(path, { flags: 'a' });
+async function writeToMultipleLogFiles(log, paths) {
+  try {
+    let successes = 0;
+    for (let i = 0; i < paths.length; i++) {
+      let ws = createWriteStream(path, { flags: 'a' });
       ws.write(`[${new Date().toISOString().replace('T', ' ').substring(0, 19)}] ${log}\n`);
       ws.end();
       successes = successes + 1;
-    });
-    resolve(successes);
-  })
+    };
+    return successes;
+  }
+  catch(err) {
+    throw err;
+  };
 };
 
 module.exports = {

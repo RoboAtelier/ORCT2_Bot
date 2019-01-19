@@ -76,7 +76,7 @@ function isServerUpCommand(msg, content) {
       inputs = content.toLowerCase().split(' ');
     };
   };
-  return orct2master.checkServer(inputs)
+  return orct2master.getServerStatus(inputs)
   .then(results => {
     return makeStatusMsg(results, inputs);
   })

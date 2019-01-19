@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const fs = require('fs');
-const { logger } = require('./functions');
+const { logger, reader } = require('./functions');
 const cmds = require('./commands');
 const { config } = require('./config');
 
@@ -10,231 +10,120 @@ bot.on('ready', () => {
   console.log(`Logged in as ${bot.user.tag}!`);
 });
 
-bot.on('message', msg => {
-  if (
-    msg.author.id !== bot.user.id
-    && msg.content.startsWith(config.prefix)
-  ) {
-    let contentSlice = msg.content.split(' ');
-    let cmdSlice = contentSlice.splice(0, 1);
-    let content = contentSlice.join(' ').trim();
-    let cmd = cmdSlice[0].substring(1).toLowerCase();
-    
-    const usrlog = `${msg.author.username} attempted to call '${cmd}' on #${msg.channel.name} (ID:${msg.channel.id}).`;
-    console.log(usrlog);
-    logger.writeLog(
-      usrlog,
-      `${config.userlogs}/${msg.author.id}-${msg.author.username}`
-    )
-    .then(() => {
-      if (['isup', 'up'].includes(cmd)) {
-        cmds.isup.isUpCmd(msg, content)
-        .then(log => {
-          logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-        })
-        .catch(err => {
-          console.log(err);
-          logger.writeLog(err, `${config.errlogs}/isup`);
-          msg.channel.send('Could not successfully check server status.');
-        });
-      }
-      else if (['devbuild', 'latest', 'dvb'].includes(cmd)) {
-        cmds.checkver.checkVerCmd(msg, content, 'dev', config.devuri)
-        .then(log => {
-          logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-        })
-        .catch(err => {
-          console.log(err);
-          logger.writeLog(err, `${config.errlogs}/checkver`);
-          msg.channel.send('Could not find details about the latest OpenRCT2 build.');
-        });
-      }
-      else if (['launcher', 'lnc'].includes(cmd)) {
-        cmds.checkver.checkVerCmd(msg, content, 'lnc', config.lncuri)
-        .then(log => {
-          logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-        })
-        .catch(err => {
-          console.log(err);
-          logger.writeLog(err, `${config.errlogs}/checkver`);
-          msg.channel.send('Could not find details about the latest OpenRCT2 launcher.');
-        });
-      }
-      else if (
-        config.trustchannels.includes(msg.channel.name)
-        || config.adminchannels.includes(msg.channel.name)
-      ) {
-        if (['scenarios', 'maps'].includes(cmd)) {
-          cmds.scenarios.listScenarios(msg, content)
-          .then(log => {
-            logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-          })
-          .catch(err => {
-            console.log(err);
-            logger.writeLog(err, `${config.errlogs}/scenarios`);
-          });
+bot.on('message', async msg => {
+  try {
+    const prefix = await reader.readBotData('prefix');
+    let cmd = '';
+    let content = '';
+    if (
+      msg.author.id !== bot.user.id
+      && msg.content.startsWith(prefix)
+    ) {
+      cmd = msg.content.replace(prefix, '').split(' ', 1)[0];
+      content = msg.content.replace(`${prefix}${cmd}`, '').trim();
+      const usrLog = `${msg.author.username} called '${cmd}' on #${msg.channel.name} (${msg.channel.id}).`;
+      const usrPath = `${config.userlogs}/${msg.author.id}-${msg.author.username.split('/').join('_')}`;
+      console.log(usrLog);
+      await logger.writeLog(usrLog, usrPath);
+      let cmdLog = '';
+      try {
+        if (['isup', 'up'].includes(cmd)) {
+          cmd = 'isup';
+          cmdLog = await cmds.isup.isUpCmd(msg, content);
         }
-        else if (['discard', 'remove', 'delete', 'del', 'rm'].includes(cmd)) {
-          cmds.scenarios.moveScenario(msg, content, 'discard')
-          .then(log => {
-            logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-          })
-          .catch(err => {
-            console.log(err);
-            logger.writeLog(err, `${config.errlogs}/move`);
-          });
+        else if (['devbuild', 'latest', 'dvb'].includes(cmd)) {
+          cmd = 'devbuild';
+          cmdLog = await cmds.checkver.checkVerCmd(msg, content, 'dev', config.devuri);
         }
-        else if (['restore', 'res'].includes(cmd)) {
-          cmds.scenarios.moveScenario(msg, content, 'restore')
-          .then(log => {
-            logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-          })
-          .catch(err => {
-            console.log(err);
-            logger.writeLog(err, `${config.errlogs}/move`);
-          });
+        else if (['launcher', 'lnc'].includes(cmd)) {
+          cmd = 'launcher';
+          cmdLog = await cmds.checkver.checkVerCmd(msg, content, 'lnc', config.lncuri);
         }
-        else if (['mapvote', 'votemap', 'vmap'].includes(cmd)) {
-          cmds.vote.startScenarioVote(msg, content)
-          .then((log) => {
-            console.log(log);
-            logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-          })
-          .catch(err => {
-            console.log(err);
-            logger.writeLog(err, `${config.errlogs}/vote`);
-          });
-        }
-        else if (['cancelmap', 'cncmap'].includes(cmd)) {
-          cmds.vote.cancelScenarioVote(msg, content)
-          .then((log) => {
-            console.log(log);
-            logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-          })
-          .catch(err => {
-            console.log(err);
-            logger.writeLog(err, `${config.errlogs}/vote`);
-          });
-        }
-        else if (['changemap', 'run'].includes(cmd)) {
+        else if (['scenarios', 'maps'].includes(cmd)) {
           if (
             msg.member.roles.has(config.mod)
             || msg.member.roles.has(config.admin)
             || msg.member.roles.has(config.owner)
+            || config.botchannels.includes(msg.channel.name)
           ) {
-            cmds.svrops.run(msg, content)
-            .then((log) => {
-              console.log(log);
-              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-            })
-            .catch(err => {
-              console.log(err);
-              logger.writeLog(err, `${config.errlogs}/serverops`);
-            });
+            cmd = 'scenarios';
+            cmdLog = await cmds.scenarios.showScenarios(msg, content);
           };
         }
-        else if (['restart'].includes(cmd)) {
-          if (
+        else if (
+          config.trustchannels.includes(msg.channel.name)
+          || config.adminchannels.includes(msg.channel.name)
+        ) {
+          if (['discard', 'remove', 'delete', 'del', 'rm'].includes(cmd)) {
+            cmd = 'move';
+            cmdLog = await cmds.scenarios.moveScenario(msg, content, 'discard');
+          }
+          else if (['restore', 'res'].includes(cmd)) {
+            cmd = 'move';
+            cmdLog = await cmds.scenarios.moveScenario(msg, content, 'restore');
+          }
+          else if (['mapvote', 'votemap', 'vmap'].includes(cmd)) {
+            cmd = 'vote';
+            cmdLog = await cmds.vote.startScenarioVote(msg, content);
+          }
+          else if (['nomapvote', 'novotemap', 'novmap'].includes(cmd)) {
+            cmd = 'vote';
+            cmdLog = await cmds.vote.cancelScenarioVote(msg, content);
+          }
+          else if (
             msg.member.roles.has(config.mod)
             || msg.member.roles.has(config.admin)
             || msg.member.roles.has(config.owner)
           ) {
-            cmds.svrops.run(msg, `-a ${content}`)
-            .then((log) => {
-              console.log(log);
-              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-            })
-            .catch(err => {
-              console.log(err);
-              logger.writeLog(err, `${config.errlogs}/serverops`);
-            });
-          };
-        }
-        else if (['kill', 'stop'].includes(cmd)) {
-          if (
-            msg.member.roles.has(config.admin)
-            || msg.member.roles.has(config.owner)
-          ) {
-            cmds.svrops.kill(msg, content)
-            .then((log) => {
-              console.log(log);
-              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-            })
-            .catch(err => {
-              console.log(err);
-              logger.writeLog(err, `${config.errlogs}/serverops`);
-            });
-          }
-        }
-        else if (['config', 'conf'].includes(cmd)) {
-          if (
-            msg.member.roles.has(config.admin)
-            || msg.member.roles.has(config.owner)
-          ) {
-            cmds.svrconfig.showConfig(msg, content)
-            .then((log) => {
-              console.log(log);
-              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-            })
-            .catch(err => {
-              console.log(err);
-              logger.writeLog(err, `${config.errlogs}/serverfiles`)
-            });
-          }
-        }
-        else if (['editconfig', 'editconf', 'chconf'].includes(cmd)) {
-          if (
-            msg.member.roles.has(config.admin)
-            || msg.member.roles.has(config.owner)
-          ) {
-            cmds.svrconfig.editServer(msg, content)
-            .then((log) => {
-              console.log(log);
-              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-            })
-            .catch(err => {
-              console.log(err);
-              logger.writeLog(err, `${config.errlogs}/serverfiles`)
-            });
-          }
-        }
-        else if (['users', 'usrs'].includes(cmd)) {
-          if (
-            msg.member.roles.has(config.admin)
-            || msg.member.roles.has(config.owner)
-          ) {
-            cmds.svrfiles.showUsers(msg, content)
-            .then((log) => {
-              console.log(log);
-              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-            })
-            .catch(err => {
-              console.log(err);
-              logger.writeLog(err, `${config.errlogs}/serverfiles`)
-            });
-          }
-        }
-        else if (['groups', 'grps'].includes(cmd)) {
-          if (
-            msg.member.roles.has(config.admin)
-            || msg.member.roles.has(config.owner)
-          ) {
-            cmds.svrfiles.showGroups(msg, content)
-            .then((log) => {
-              console.log(log);
-              logger.writeLog(log, `${config.userlogs}/${msg.author.id}-${msg.author.username}`);
-            })
-            .catch(err => {
-              console.log(err);
-              logger.writeLog(err, `${config.errlogs}/serverfiles`)
-            });
+            if (['changemap', 'run'].includes(cmd)) {
+              cmd = 'svr_ops';
+              cmdLog = await cmds.svr_ops.run(msg, content);
+            }
+            else if (['restart'].includes(cmd)) {
+              cmd = 'svr_ops';
+              cmdLog = await cmds.svr_ops.run(msg, `-a ${content}`);
+            }
+            else if (['users', 'usrs'].includes(cmd)) {
+              cmd = 'svr_config';
+              cmdLog = await cmds.svr_config.showUsers(msg, content);
+            }
+            else if (['groups', 'grps'].includes(cmd)) {
+              cmd = 'svr_config';
+              cmdLog = await cmds.svr_config.showGroups(msg, content);
+            }
+            else if (
+              msg.member.roles.has(config.admin)
+              || msg.member.roles.has(config.owner)
+            ) {
+              if (['kill', 'stop'].includes(cmd)) {
+                cmd = 'svr_ops';
+                cmdLog = await cmds.svr_ops.stop(msg, content);
+              }
+              else if (['config', 'conf'].includes(cmd)) {
+                cmd = 'svr_config';
+                cmdLog = await cmds.svr_config.showConfig(msg, content);
+              }
+              else if (['editconfig', 'editconf', 'chconf'].includes(cmd)) {
+                cmd = 'svr_config';
+                cmdLog = await cmds.svr_config.editConfig(msg, content);
+              };
+            };
           };
         };
+        if (cmdLog.length > 0) {
+          console.log(cmdLog);
+          await logger.writeLog(cmdLog, usrPath);
+        };
+      }
+      catch(err) {
+        console.log(err);
+        await logger.writeLog(err, `${config.errlogs}/cmd`);
       };
-    })
-    .catch(err => {
-      console.log(err);
-    });
+    };
+  }
+  catch(err) {
+    console.log(err);
+    await logger.writeLog(err, `${config.errlogs}/bot`);
   };
 });
 
@@ -244,5 +133,4 @@ bot.on('error', err => {
 
 //Load config parameters
 cmds.isup.loadGTWIPv4s([config.server1ipv4, config.server2ipv4]);
-cmds.scenarios.loadPaths(config.scenarios, config.discard);
 bot.login(config.token);

@@ -1,6 +1,6 @@
 /logs
 /scenarios
 /config.js
-/configold
 /functions/loader.js
-/functions/autocheck.js
+/functions/inter_check.js
+/botdata

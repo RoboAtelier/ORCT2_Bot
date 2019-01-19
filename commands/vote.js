@@ -3,7 +3,7 @@
  * @requires fs
  */
 const { readdirSync } = require('fs');
-const { config } = require ('../config');
+const { config } = require('../config');
 const { runServer, killServer } = require('../functions/orct2server');
 
 const voteEmojis = [
@@ -29,6 +29,14 @@ let scenarioVote = {
 let generalVoteSessions = [];
 let lastChange = new Date(0);
 
+/**
+ * Cancels and stops a voting session for changing the server scenario.
+ * 
+ * @async
+ * @function
+ * @param {Message} Discord message object
+ * @returns {string} log entry
+ */
 async function cancelScenarioVote(msg) {
   try {
     if (scenarioVote.active === true) {
@@ -52,7 +60,7 @@ async function cancelScenarioVote(msg) {
 };
 
 /**
- * Starts a vote for changing the server scenario.
+ * Starts a voting session for changing the server scenario.
  * 
  * @async
  * @function
@@ -62,19 +70,19 @@ async function cancelScenarioVote(msg) {
  */
 async function startScenarioVote(msg, content) {
   try {
-    
-    //Vote cooldown - 5 minutes
-    const diff = (new Date() - lastChange)/60000;
-    if (diff < 5) {
-      let timeString = '';
-      if (diff >= 4) {
-        timeString = 'minute';
-      }
-      else {
-        timeString = 'minutes';
+    if (!(
+      msg.member.roles.has(config.mod)
+      || msg.member.roles.has(config.admin)
+      || msg.member.roles.has(config.owner)
+    )) {
+      
+      //Vote cooldown if not Moderator+ - 5 minutes
+      const diff = (new Date() - lastChange)/60000;
+      if (diff < 2) {
+        const timeString = diff >= 1 ? 'minute' : 'minutes';
+        await msg.channel.send(`Scenario voting just finished recently. You must wait about ${2 - Math.floor(diff)} ${timeString} before starting a new vote.`);
+        return 'Attempted to start a scenario vote. Scenario vote already finished recently.'
       };
-      await msg.channel.send(`Scenario voting already happened recently. You must wait about ${5 - Math.floor(diff)} ${timeString} before starting a new vote.`);
-      return 'Attempted to start a scenario vote. Scenario vote already finished recently.'
     };
 
     let page = 0;
@@ -119,12 +127,11 @@ async function startScenarioVote(msg, content) {
         return 'Attempted to start scenario vote. Invalid input was given.';
       };
       if (page > Math.ceil(scenarios.length/20) || page < 1) {
-        if (scenarios.length < 20) {
-          await msg.channel.send('There is only a single page of scenarios.');
-        }
-        else {
-          await msg.channel.send(`You can only choose a page between 1-${Math.ceil(scenarios.length/20)}`);
-        };
+        await msg.channel.send(
+          scenarios.length < 20
+          ? 'There is only a single page of scenarios.'
+          : `You can only choose a page between 1-${Math.ceil(scenarios.length/20)}`
+        )
         return 'Attempted to start scenario vote. Invalid page was given.';
       }
       else if (index > 20 || index < 1) {
@@ -214,6 +221,7 @@ async function startScenarioVote(msg, content) {
             scenarioVote.session = null;
             await killServer(1);
             await runServer(scenario, 1);
+            await msg.guild.channels.get(config.mainchannel).send(`Starting up **${scenario.substring(0, pick[0].length - 4)}** on Server #${server}.`);
           }, 10000);
         }
         else {
@@ -235,65 +243,7 @@ async function startScenarioVote(msg, content) {
   };
 };
 
-/*
-async function startGenericVote(msg, content) {
-  try {
-    let params = content;
-    let option = '';
-    if (params.length > 0) {
-      
-      //Load option
-      if (params.startsWith('-')) {
-        let paramSlice = content.split(' ');
-        let optionSlice = paramSlice.splice(0, 1);
-        params = paramSlice.join(' ');
-        option = optionSlice[0];
-      };
-    };
-    let totalTime = 60000;
-    if (/^[0-9]+[smh]$/.test(params[params.length - 1])) {
-      const time = params.splice(params.length - 1, 1).toLowerCase();
-      const timeLength = parseInt(time.substring(0, time.length - 1));
-      const timeUnit = time.substring(timeLength);
-      let multiplier = 1000;
-      if (timeUnit === 'h') {
-        multiplier = 3600000;
-      }
-      else if (timeUnit === 'm') {
-        multiplier = 60000;
-      };
-      totalTime = multiplier*timeLength;
-      if (totalTime > 86400000) {
-        msg.channel.send('Voting time cannot exceed more than 24 hours.')
-        throw 'Voting interval input too large.';
-      }
-      else if (totalTime < 15000) {
-        msg.channel.send('Voting time must be at least 15 seconds.')
-        throw 'Voting interval input too small.';
-      };
-    };
-    if (option === '-c') {
-      let inputs = [];
-      if (!/[^,;]/.test(params)) {
-        inputs = params.split(/[,;]+/);
-      }
-      else {
-        inputs = params.split(' ');
-      };
-      const emojis = msg.guild.emojis;
-      let voteEmojis = [];
-      for (let i = 0; i < inputs.length(); i++) {
-        voteEmojis.push(emojis.splice(Math.random(0, emojis.length - 1), 1));
-      };
-      
-    }
-  }
-  catch(err) {
-    return err;
-  };
-};*/
-
 module.exports = {
   startScenarioVote,
   cancelScenarioVote,
-}
+};
