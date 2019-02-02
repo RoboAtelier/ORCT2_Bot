@@ -116,7 +116,7 @@ async function showScenarios(msg, content) {
  * @returns {string} Log entry.
  */
 async function moveScenario(msg, content, action) {
-  const search = content.toLowerCase().split('_').join(' ');
+  const search = content;
   let startDir = '';
   let endDir = '';
   if (action === 'discard') {
