@@ -87,7 +87,7 @@ async function showScenarios(msg, content) {
     await msg.channel.send(pages === 1
     ? 'There is only one page.'
     : `Valid pages are between 1 and ${pages} for '${search}'.`);
-    return 'Attempted to display registered users. Invalid page entered.';
+    return 'Attempted to display scenarios. Invalid page entered.';
   };
 
   //Format message
@@ -116,7 +116,7 @@ async function showScenarios(msg, content) {
  * @returns {string} Log entry.
  */
 async function moveScenario(msg, content, action) {
-  const search = content.toLowerCase();
+  const search = content.toLowerCase().split('_').join(' ');
   let startDir = '';
   let endDir = '';
   if (action === 'discard') {
@@ -127,63 +127,31 @@ async function moveScenario(msg, content, action) {
     startDir = config.discard;
     endDir = config.scenarios;
   };
-  return new Promise((resolve, reject) => {
-    if (search.length === 0) {
-      msg.channel.send('No search string given.');
-      reject(`No search string given by ${msg.author.username}.`)
-    }
-    readdir(startDir, (err, files) => {
-      if (err) {
-        msg.channel.send('Something went wrong while reading files.');
-        reject(err);
-      };
-      resolve(
-      
-        //Return only subset of files with search string
-        files.filter(file => {
-          return file.toLowerCase().replace('_', ' ').includes(search);
-        })
-      );
-    });
-  })
-  .then(files => {
-    const scenarios = files.filter(file => {
-      return (
-        file.toLowerCase().endsWith('.sc6')
-        || file.toLowerCase().endsWith('.sv6')
-        || file.toLowerCase().endsWith('.sc4')
-      );
-    })
+  if (search.length === 0) {
+    await msg.channel.send('No search string given.');
+    return 'Attempted to move scenarios. No input was given.';
+  };
+  const scenarios = await getScenarios(startDir, search);
     
-    //Only move one file at a time
-    if (scenarios.length > 1) {
-      msg.channel.send(`Input returned multiple results:\n\n*${scenarios.join('*\n*')}*\n\nPlease enter a more exact name of the scenario.`);
-      return 'Successfully attempted to move a scenario.';
-    }
-    else if (scenarios.length === 0) {
-      msg.channel.send('Input could not match a specific scenario.');
-      return 'Successfully attempted to move a scenario.';
-    }
-    else {
-      rename(
-        `${startDir}/${scenarios[0]}`,
-        `${endDir}/${scenarios[0]}`,
-        err => {
-          if (err) {
-            msg.channel.send('Something went wrong with the file transfer.');
-            throw err;
-          };
-        }
-      );
-      if (endDir === config.discard) {
-        msg.channel.send(`Successfully moved ${scenarios[0]} into the discard pile.`);
-      }
-      else if (endDir === config.scenarios) {
-        msg.channel.send(`Successfully moved ${scenarios[0]} into the scenario pile.`);
-      };
-      return `Successfully moved a scenario: \'${scenarios[0]}\'`;
-    };
-  })
+  if (scenarios.length > 1) {
+    await msg.channel.send(`'${search}' returned multiple results:\n\n*${scenarios.join('*\n*')}*\n\nPlease enter a more exact name of the scenario.`);
+    return 'Attempted to move scenarios. Input returned multiple results.';
+  }
+  else if (scenarios.length === 0) {
+    await msg.channel.send(`No scenarios found with '${search}'.`);
+    return 'Attempted to move scenarios. No scenarios found with given input.';
+  }
+  renameSync(
+    `${startDir}/${scenarios[0]}`,
+    `${endDir}/${scenarios[0]}`,
+  );
+  if (endDir === config.discard) {
+    msg.channel.send(`Successfully moved ${scenarios[0]} into the discard pile.`);
+  }
+  else if (endDir === config.scenarios) {
+    msg.channel.send(`Successfully moved ${scenarios[0]} into the scenario pile.`);
+  };
+  return `Successfully moved a scenario: \'${scenarios[0]}\'`;
 };
 
 module.exports = {
