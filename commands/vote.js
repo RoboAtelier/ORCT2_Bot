@@ -38,24 +38,18 @@ let lastChange = new Date(0);
  * @returns {string} log entry
  */
 async function cancelScenarioVote(msg) {
-  try {
-    if (scenarioVote.active === true) {
-      clearTimeout(scenarioVote.session);
-      scenarioVote.active = false;
-      scenarioVote.scenarios = [];
-      await scenarioVote.msg.channel.send('Scenario voting cancelled!');
-      await scenarioVote.msg.delete();
-      scenarioVote.msg = null;
-      scenarioVote.session = null;
-      return 'Successfully ended a scenario vote.';
-    }
-    else {
-      await msg.channel.send('A scenario voting session isn\'t active right now.');
-      return 'Attempted to cancel scenario vote. A vote is not currently running.';
-    }
+  if (scenarioVote.active === true) {
+    clearTimeout(scenarioVote.session);
+    scenarioVote.active = false;
+    await scenarioVote.msg.channel.send('Scenario voting cancelled!');
+    await scenarioVote.msg.delete();
+    scenarioVote.msg = null;
+    scenarioVote.session = null;
+    return 'Successfully ended a scenario vote.';
   }
-  catch(err) {
-    throw err;
+  else {
+    await msg.channel.send('A scenario voting session isn\'t active right now.');
+    return 'Attempted to cancel scenario vote. A vote is not currently running.';
   };
 };
 
@@ -88,13 +82,12 @@ async function startScenarioVote(msg, content) {
     let page = 0;
     let index = 1;
     let input = content;
-    let scenarios = [];
+    let scenarios = scenarioVote.scenarios;
     let voteChoices = [];
     
     //Restart vote with different scenario choices
     if (scenarioVote.active === true) {
       input = '';
-      scenarios = scenarioVote.scenarios;
       clearTimeout(scenarioVote.session);
       await scenarioVote.msg.delete();
     };
@@ -159,10 +152,12 @@ async function startScenarioVote(msg, content) {
       choiceString = `${choiceString}${voteEmojis[i]} | ${voteChoices[i].substring(0, voteChoices[i].length - 4)}\n`
     };
     const voteMsg = await msg.guild.channels.get(config.mainchannel).send(`Choose the next scenario:\n\n${choiceString}${voteEmojis[10]} | New selection of maps`);
-    await msg.channel.send(`Started vote at #main-lobby.`);
     
     //Initiate voting
-    scenarioVote.active = true;
+    if (scenarioVote.active === false) {
+      scenarioVote.active = true;
+      await msg.channel.send(`Started scenario vote in <#${config.mainchannel}>.`)
+    };
     scenarioVote.scenarios = scenarios;
     scenarioVote.msg = voteMsg;
     let interrupt = false;
@@ -201,23 +196,20 @@ async function startScenarioVote(msg, content) {
           startScenarioVote(msg, content);
           return false;
         }
-        else if (top.length > 1) {
+        else {
           top = top.filter(reaction => {
             return (reaction.emoji.name !== voteEmojis[10]);
           });
           const reaction = top[Math.floor(Math.random()*top.length)];
           scenario = voteChoices[voteEmojis.indexOf(reaction.emoji.name)];
-          await voteMsg.edit(`${voteMsg.content}\n\nThere was a tie! Randomly picked: **${scenario.substring(0, scenario.length - 4)}** (${highest} votes)\n\nMap change in 10 seconds.`);
-        }
-        else {
-          scenario = voteChoices[voteEmojis.indexOf(top[0].emoji.name)];
-          await voteMsg.edit(`${voteMsg.content}\n\nSelected scenario: **${scenario.substring(0, scenario.length - 4)}** (${highest} votes)\n\nMap change in 10 seconds.`);
+          top.length === 1
+          ? await voteMsg.edit(`${voteMsg.content}\n\nSelected scenario: **${scenario.substring(0, scenario.length - 4)}** (${highest} votes)\n\nMap change in 10 seconds.`)
+          : await voteMsg.edit(`${voteMsg.content}\n\nThere was a tie! Randomly picked: **${scenario.substring(0, scenario.length - 4)}** (${highest} votes)\n\nMap change in 10 seconds.`);
         };
         if (scenario.length > 0) {
           scenarioVote.session = setTimeout(async () => {
             lastChange = new Date();
             scenarioVote.active = false;
-            scenarioVote.scenarios = [];
             scenarioVote.session = null;
             await killServer(1);
             await runServer(scenario, 1);
@@ -226,7 +218,6 @@ async function startScenarioVote(msg, content) {
         }
         else {
           scenarioVote.active = false;
-          scenarioVote.scenarios = [];
           scenarioVote.session = null;
         };
       }, 30000);
@@ -236,7 +227,6 @@ async function startScenarioVote(msg, content) {
   }
   catch(err) {
     scenarioVote.active = false;
-    scenarioVote.scenarios = [];
     scenarioVote.msg = null;
     scenarioVote.session = null;
     throw err;

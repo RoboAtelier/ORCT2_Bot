@@ -2,18 +2,18 @@
  * @module scenarios
  * @requires fs
  */
-const { readdir, rename } = require('fs');
+const { readdirSync, renameSync } = require('fs');
 const { config } = require('../config');
 const { getScenarios } = require('../functions/reader');
 
 /**
- * Shows multiplayer scenarios in a directory.
+ * Shows multiplayer scenarios in a directory separated by groups of 20.
  * 
  * @async
- * @function
+ * @function showScenarios
  * @param {Message} msg - Discord message object
  * @param {string} content - Message contents
- * @returns {string} log entry
+ * @returns {string} Log entry.
  */
 async function showScenarios(msg, content) {
   let option = '';
@@ -71,7 +71,7 @@ async function showScenarios(msg, content) {
     results = await getScenarios(scenarioDir, search);
   }
   else {
-    results = await getScenarios();
+    results = await getScenarios(scenarioDir);
   };
   if (results.length === 0) {
     await msg.channel.send(`No scenarios found with '${search}'.`);
@@ -108,13 +108,14 @@ async function showScenarios(msg, content) {
 /**
  * Moves scenarios between the scenario and discard directories
  * 
- * @function
- * @param {Message} Discord message object
- * @param {string} message contents
- * @param {string} action to perform
- * @returns {string} log entry
+ * @async
+ * @function moveScenario
+ * @param {Message} msg - Discord message object
+ * @param {string} content - Message contents
+ * @param {string} action - Action to perform
+ * @returns {string} Log entry.
  */
-function moveScenario(msg, content, action) {
+async function moveScenario(msg, content, action) {
   const search = content.toLowerCase();
   let startDir = '';
   let endDir = '';
@@ -125,7 +126,7 @@ function moveScenario(msg, content, action) {
   else if (action === 'restore') {
     startDir = config.discard;
     endDir = config.scenarios;
-  }
+  };
   return new Promise((resolve, reject) => {
     if (search.length === 0) {
       msg.channel.send('No search string given.');

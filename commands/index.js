@@ -1,6 +1,7 @@
 module.exports = {
-  checkver: require('./checkver'),
+  checkbuild: require('./checkbuild'),
   isup: require('./isup'),
+  ivchecker: require('./ivchecker'),
   scenarios: require('./scenarios'),
   //prefix: require('./prefix'),
   svr_config: require('./svr_config'),

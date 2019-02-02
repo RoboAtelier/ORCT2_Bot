@@ -1,20 +1,23 @@
-/** Retrieves web page details related to OpenRCT2
+/** Retrieves OpenRCT2-related data and files through the internet
  * @module orct2web
- * @requires request-promise
- * @requires cheerio
+ * @requires request-promise, cheerio
  */
 const rp = require('request-promise');
 const cheerio = require('cheerio');
 
 /**
  * Gets web page information about OpenRCT2 applications.
- * @function
- * @param {string} page to get
- * @param {string} uri to page
- * @returns {string} details from the page retrieved
+ * 
+ * @async
+ * @function getOpenRCT2BuildPageDetails
+ * @param {string} page - Page to get
+ * @param {string} uri - URI to page
+ * @returns {string} Data from the page retrieved.
  */
-function getOpenRCT2PageDetails(page, uri) {
+async function getOpenRCT2BuildPageDetails(page, uri) {
   let details = '';
+  
+  //Transform Data for Cheerio
   let options = {
     uri,
     transform: function (body) {
@@ -22,83 +25,140 @@ function getOpenRCT2PageDetails(page, uri) {
     },
   };
   
-  //Latest OpenRCT2 build details
+  //Latest OpenRCT2 Build Details
   if (page === 'dev') {
-    return rp(options)
-      .then($ => {
-        $('ul').first().children().each((i, ielem) => {
-          if (i === 1) {
-            details = `${details}Git Hash: **${$('a', ielem).text()}**\n`;
-          }
-          else if (i === 2) {
-            details = `Was released **${$('span', ielem).first().text()} ago**\n${details}`;
-            details = `Release Date: **${$('span', ielem).next().text()}**\n${details}`;
-          };
-        });
-        details = `*${$('h1').first().text()}*\n\n${details}`;
-        return details;
-      });
+    const $ = await rp(options);
+    $('ul').first().children().each((i, ielem) => {
+      if (i === 1) {
+        details = `${details}Git Hash: **${$('a', ielem).text()}**\n`;
+      }
+      else if (i === 2) {
+        details = `Was released **${$('span', ielem).first().text()} ago**\n${details}`;
+        details = `Release Date: **${$('span', ielem).next().text()}**\n${details}`;
+      };
+    });
+    details = `*${$('h1').first().text()}*\n\n${details}`;
   }
   
-  //OpenRCT2 game launcher details
+  //OpenRCT2 Game Launcher Details
   else if (page === 'lnc') {
-    return rp(options)
-      .then($ => {
-        details = `${details}*Latest OpenRCT2 launcher download*\n\n`
-        const maindiv = $('.release-entry').first();
-        const header = $('.release-header', maindiv).first();
-        $('p', header).first().children().each((i, ielem) => {
-          if (i === 1) {
-            details = `${details}Creator: **${$(ielem).text()}**\n`;
-          }
-          else if (i === 2) {
-            details = `${details}Release Date: **${$(ielem).text()}**\n`;
-          }
-          else if (i === 3) {
-            details = `${details}Version: **${$('a', header).first().text()}**\n`;
-            details = `${details}Git Hash: **${$('code', maindiv).first().text()}**\n`;
-            details = `${details}${$(ielem).text().trim()} since last release\n`;
-          };
-        });
-        return details;
-      });
+    const $ = await rp(options);
+    details = `${details}*Latest OpenRCT2 launcher download*\n\n`
+    const maindiv = $('.release-entry').first();
+    const header = $('.release-header', maindiv).first();
+    $('p', header).first().children().each((i, ielem) => {
+      if (i === 1) {
+        details = `${details}Creator: **${$(ielem).text()}**\n`;
+      }
+      else if (i === 2) {
+        details = `${details}Release Date: **${$(ielem).text()}**\n`;
+      }
+      else if (i === 3) {
+        details = `${details}Version: **${$('a', header).first().text()}**\n`;
+        details = `${details}Git Hash: **${$('code', maindiv).first().text()}**\n`;
+        details = `${details}${$(ielem).text().trim()} since last release\n`;
+      };
+    });
   };
+  return details;
 };
 
 /**
  * Gets the Github hash of the desired build.
- * @function
  * 
- * @param {string} build to get
- * @param {string} uri to page
- * @returns {string} build hash
+ * @async
+ * @function getOpenRCT2BuildHash
+ * @param {string} build - Build to get
+ * @param {string} uri - URI to page
+ * @returns {string} Build hash
  */
-function getOpenRCT2BuildHash(build, uri) {
-  let options = {
+async function getOpenRCT2BuildHash(build, uri) {
+  
+  //Transform Data for Cheerio
+  const options = {
     uri,
     transform: function (body) {
       return cheerio.load(body, { decodeEntities: false });
     },
   };
   
-  //Latest OpenRCT2 build hash
+  //Latest OpenRCT2 Build Hash
   if (build === 'dev') {
-    return rp(options)
-      .then(($) => {
-        return $('ul').first().next().text();
-      });
+    const $ = await rp(options);
+    return $('li').find('span').first().text();
   }
   
-  //OpenRCT2 game launcher hash
+  //OpenRCT2 game Launcher Hash
   else if (build === 'lnc') {
-    return rp(options)
-      .then(($) => {
-        return $('code').first().text();
-      });
+    const $ = await rp(options);
+    return $('code').first().text();
+  };
+};
+
+/**
+ * Makes a JSON request to the OpenRCT2 master server to check server status.
+ * 
+ * @async
+ * @function getServerStatus
+ * @param {string[]} inputs - Array of inputs to to check
+ * @returns {Object.<Object[], string[]>} Array of servers matched with given inputs.
+ */
+async function getServerStatus(inputs) {
+
+  //Header for JSON Requests
+  const options = {
+    uri: 'https://servers.openrct2.io',
+    headers: {
+      'User-Agent': 'Request-Promise'
+    },
+    json: true
+  };
+
+  //JSON Data of Servers
+  const json = await rp(options);
+  let servers = json.servers;
+  
+  //Find Matches
+  let matches = [];
+  if (inputs.length > 0) {
+    servers = json.servers.filter(server => {
+      
+      //Filter by IPv4
+      if (inputs.includes(server.ip.v4[0])) {
+        if (!matches.includes(server.ip.v4[0])) {
+          matches.push(server.ip.v4[0]);
+        };
+        return true;
+      }
+      else if (inputs.includes(`${server.ip.v4[0]}:${server.port}`)) {
+        if (!matches.includes(`${server.ip.v4[0]}:${server.port}`)) {
+          matches.push(`${server.ip.v4[0]}:${server.port}`);
+        };
+        return true;
+      }
+      else {
+        
+        //Filter by Name Substring
+        let found = false;
+        for (let i = 0; i < inputs.length; i++) {
+          if (server.name.toLowerCase().includes(inputs[i])) {
+            matches.push(inputs[i]);
+            found = true;
+            break;
+          }
+        };
+        return found;
+      };
+    });
+  };
+  return {
+    servers,
+    matches,
   };
 };
 
 module.exports = {
-  getPage: getOpenRCT2PageDetails,
-  getHash: getOpenRCT2BuildHash,
+  getBuildHash: getOpenRCT2BuildHash,
+  getBuildData: getOpenRCT2BuildPageDetails,
+  getServerStatus,
 };

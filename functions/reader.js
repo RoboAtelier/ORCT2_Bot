@@ -9,7 +9,7 @@ const { config } = require('../config');
  * Gets the server directory of a server if it exists.
  * 
  * @async
- * @function
+ * @function getServerDirectory
  * @param {number} server - Server number
  * @returns {string} Path to server directory or a blank string.
  */
@@ -17,14 +17,14 @@ async function getServerDirectory(server) {
   const serverDir = readdirSync(config.openrct2).find(item => {
     return item.startsWith(`s${server}-`);
   });
-  return serverDir.length === 0 ? '' : `${config.openrct2}/${serverDir}`;
+  return serverDir === undefined ? '' : `${config.openrct2}/${serverDir}`;
 };
 
 /**
  * Gets scenarios in a directory.
  * 
  * @async
- * @function
+ * @function getScenarios
  * @param {string} [path] - Path to scenario directory
  * @param {string} [search] - Search string
  * @returns {string[]} Array of all or matched scenarios in a directory.
@@ -45,7 +45,7 @@ async function getScenarios(path = config.scenarios, search = '') {
  * Reads the bot data file.
  * 
  * @async
- * @function
+ * @function readBotData
  * @param {string} [field] - Field to match
  * @returns {string|string[]} Matched field value or all bot data in an array of lines.
  */
@@ -61,8 +61,32 @@ async function readBotData(field = '') {
   return data;
 };
 
+/**
+ * Reads the config.ini file in a OpenRCT2 server directory.
+ * 
+ * @async
+ * @function readServerConfig
+ * @param {string} [dir] - OpenRCT2 server directory
+ * @param {string} [field] - Field to match
+ * @returns {string|string[]} Matched field value or all configurations in an array of lines.
+ */
+async function readServerConfig(dir = config.openrct2, field = '') {
+  const data = readFileSync(`${dir}/config.ini`, 'utf8').split(/\r\n|\n/);
+  if (field.length > 0) {
+    const result = data.find(line => {
+      return line.slice(0, line.indexOf(' ')) === field;
+    });
+    const value = result.slice(result.indexOf('=') + 2);
+    return value;
+  };
+  return data.filter(line => {
+    return line !== '';
+  });
+};
+
 module.exports = {
-  readBotData,
   getScenarios,
   getServerDir: getServerDirectory,
+  readBotData,
+  readServerConfig,
 };

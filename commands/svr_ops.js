@@ -14,102 +14,109 @@ const { getScenarios, getServerDir } = require('../functions/reader');
  * @function
  * @param {Message} msg - Discord message object
  * @param {string} content - Message contents
- * @returns {string} log entry
+ * @returns {string} Log entry
  */
 async function runNewServerScenario(msg, content) {
-  try {
-    let option = '';
-    let search = '';
-    let server = 1;
-    let serverDir = config.openrct2;
-    let input = content;
-    
-    //Get option
-    if (input.startsWith('-a') || input.startsWith('--autosave')) {
-      if (input.includes(' ')) {
-        option = input.slice(0, input.indexOf(' '));
-        input = input.slice(input.indexOf(' ') + 1).trim();
-        if (/^[1-9][0-9]*$/.test(input)) {
-          server = parseInt(input);
-        };
-        input = '';
-      }
-      else {
-        option = input;
-        input = '';
-      };
-      await killServer(server);
-      const status = await runServer('AUTOSAVE', server, serverDir);
-      if (status === true) {
-        await msg.channel.send(`Starting up last autosave on Server #${server}.`);
-        await msg.guild.channels.get(config.mainchannel).send(`Now resuming last autosave on Server #${server}!`);
-        return `Successfully loaded last autosave on Server #${server}.`;
-      }
-      else {
-        await msg.channel.send(`No autosaves found for Server #${server}.`);
-        return 'Attempted to run an autosave. No autosaves were found.';
-      };
+  let option = '';
+  let search = '';
+  let server = 1;
+  let serverDir = config.openrct2;
+  let input = content;
+  
+  //Get Option
+  if (input.startsWith('-')) {
+    if (input.includes(' ')) {
+      option = input.slice(0, input.indexOf(' '));
+      input = input.slice(input.indexOf(' ') + 1).trim();
     }
-
-    //Get specific server directory
-    else if (/^[1-9][0-9]* /.test(input)) {
-      server = parseInt(input.slice(0, input.indexOf(' ')));
-      input = input.slice(content.indexOf(' ') + 1).trim();
-    }
-    else if (/^[1-9][0-9]*$/.test(input)) {
-      server = parseInt(input);
+    else {
+      option = input;
       input = '';
     };
-    if (server > 1) {
-      serverDir = await getServerDir(server);
-      if (serverDir.length === 0) {
-        await msg.channel.send(`Server #${server} folder doesn't exist. You can make one using the 'config' command.`);
-        return 'Attempted to run a server. Selected server directory does not exist.';
-      };
+  };
+
+  //Get Server Directory
+  if (/^[1-9][0-9]* /.test(input)) {
+    server = parseInt(input.slice(0, input.indexOf(' ')));
+    input = input.slice(content.indexOf(' ') + 1).trim();
+  }
+  else if (/^[1-9][0-9]*$/.test(input)) {
+    server = parseInt(input);
+    input = '';
+  };
+  if (server > 1) {
+    serverDir = await getServerDir(server);
+    if (serverDir.length === 0) {
+      await msg.channel.send(`Server #${server} folder doesn't exist. You can make one using the 'config' command.`);
+      return 'Attempted to run a server. Selected server directory does not exist.';
     };
-    if (input === '') {
-      await msg.channel.send('You must specify a scenario to run.');
-      return 'Attempted to run a new map. No input was given.';
+  };
+  
+  //Run Last Autosave
+  if (option.includes('a')) {
+    await killServer(server);
+    const scenario = option.includes('h')
+    ? await runServer('AUTOSAVE', server, serverDir, true)
+    : await runServer('AUTOSAVE', server, serverDir);
+    if (scenario.length > 0) {
+      await msg.channel.send(`Starting up last autosave on Server #${server}.`);
+      await msg.guild.channels.get(config.mainchannel).send(`Now resuming last autosave on Server #${server}!`);
+      return `Successfully loaded last autosave on Server #${server}.`;
+    }
+    else {
+      await msg.channel.send(`No autosaves found for Server #${server}.`);
+      return 'Attempted to run an autosave. No autosaves were found.';
     };
-    
-    //Scenario filtering
-    let results = [];
-    if (/^'[^']+'$|^"[^"]+"$/.test(input)) {
-      let search = '';
-      if (input.includes('\'')) {
-        search = input.slice(1, input.slice(1).indexOf('\'') + 1);
-      }
-      else if (input.includes('"')) {
-        search = input.slice(1, input.slice(1).indexOf('"') + 1);
-      };
+  }
+  
+  //Catch Missing Input
+  else if (input === '' && !option.includes('r')) {
+    await msg.channel.send('You must specify a scenario to run.');
+    return 'Attempted to run a new map. No input was given.';
+  };
+  
+  //Scenario Filtering
+  let results = [];
+  if (/^'[^']+'$|^"[^"]+"$/.test(input)) {
+    let search = '';
+    if (input.includes('\'')) {
+      search = input.slice(1, input.slice(1).indexOf('\'') + 1);
+    }
+    else if (input.includes('"')) {
+      search = input.slice(1, input.slice(1).indexOf('"') + 1);
+    };
+    const scenarios = await getScenarios();
+    results = scenarios.filter(scenario => {
+      return scenario.slice(0, scenario.length - 4).toLowerCase() === search.toLowerCase();
+    });
+  }
+  else {
+    if (option.includes('r')) {
       const scenarios = await getScenarios();
-      results = scenarios.filter(scenario => {
-        return scenario.slice(0, scenario.length - 4).toLowerCase() === search.toLowerCase();
-      });
+      results = scenarios.splice(Math.floor(Math.random()*scenarios.length), 1);
     }
     else {
       results = await getScenarios(config.scenarios, input);
     };
-    if (results.length > 1) {
-      await msg.channel.send(`'${input}' returned multiple scenarios:\n\n${results.splice(0, 20).join('\n')}\n\nPlease enter a more exact name.`);
-      return 'Attempted to run a new map. Search input returned multiple scenarios.';
-    }
-    else if (results.length === 0) {
-      await msg.channel.send(`No scenario found with '${input}'.`);
-      return 'Attempted to run a new map. Search input did not return a scenario.';
-    }
-    else {
-        
-      //Restart server with new map
-      await killServer(server);
-      await runServer(results[0], server, serverDir);
-      await msg.channel.send(`Starting up **${results[0].substring(0, results[0].length - 4)}** on Server #${server}.`);
-      await msg.guild.channels.get(config.mainchannel).send(`Now running **${results[0].substring(0, results[0].length - 4)}** on Server #${server}!`);
-      return `Successfully loaded '${results[0].substring(0, results[0].length - 4)}' on Server #${server}.`;
-    };
+  };
+  if (results.length > 1) {
+    await msg.channel.send(`'${input}' returned multiple scenarios:\n\n${results.splice(0, 20).join('\n')}\n\nPlease enter a more exact name.`);
+    return 'Attempted to run a new map. Search input returned multiple scenarios.';
   }
-  catch(err){
-    throw err;
+  else if (results.length === 0) {
+    await msg.channel.send(`No scenario found with '${input}'.`);
+    return 'Attempted to run a new map. Search input did not return a scenario.';
+  }
+  else {
+      
+    //Start Server with New Map
+    await killServer(server);
+    option.includes('h')
+    ? await runServer(results[0], server, serverDir, true)
+    : await runServer(results[0], server, serverDir);
+    await msg.channel.send(`Starting up **${results[0].substring(0, results[0].length - 4)}** on Server #${server}.`);
+    await msg.guild.channels.get(config.mainchannel).send(`Now running **${results[0].substring(0, results[0].length - 4)}** on Server #${server}!`);
+    return `Successfully loaded '${results[0].substring(0, results[0].length - 4)}' on Server #${server}.`;
   };
 };
 
@@ -120,27 +127,22 @@ async function runNewServerScenario(msg, content) {
  * @function
  * @param {Message} msg - Discord message object
  * @param {string} content - Message contents
- * @returns {string} log entry
+ * @returns {string} Log entry
  */
 async function stopRunningServer(msg, content) {
-  try {
-    let server = 1;
-    if (content.length > 0) {
-      if (/^[1-9][0-9]*$/.test(content)) {
-        server = parseInt(content);
-      }
-      else {
-        msg.channel.send('Invalid input. Must be a number.');
-        return 'Attempted to kill a server. Invalid input was sent.'
-      };
+  let server = 1;
+  if (content.length > 0) {
+    if (/^[1-9][0-9]*$/.test(content)) {
+      server = parseInt(content);
+    }
+    else {
+      msg.channel.send('Invalid input. Must be a number.');
+      return 'Attempted to kill a server. Invalid input was sent.'
     };
-    await killServer(server);
-    msg.channel.send(`Successfully sent signal to stop Server #${server}`);
-    return `Successfully signalled force kill on Server #${server}.`
-  }
-  catch(err){
-    throw err;
   };
+  await killServer(server);
+  msg.channel.send(`Successfully sent signal to stop Server #${server}`);
+  return `Successfully signalled force kill on Server #${server}.`;
 };
 
 module.exports = {

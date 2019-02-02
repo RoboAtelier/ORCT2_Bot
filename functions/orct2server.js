@@ -7,17 +7,21 @@ const { spawn, exec } = require('child_process');
 const { config } = require('../config');
 
 let servers = {};
+let serverMaps = {};
+let runHeadless = [];
 
 /**
  * Runs a OpenRCT2 server with a given scenario.
  * 
  * @async
- * @function
+ * @function runOpenRCT2Server
  * @param {string} scenario - Scenario file to load
  * @param {number} server - Server number
  * @param {string} [path] - Path to server directory containing config.ini
+ * @param {boolean} [headless] - Specify if running headless server
+ * @return {string} - Name of scenario hosted or an empty string.
  */
-async function runOpenRCT2Server(scenario, server, path=config.openrct2) {
+async function runOpenRCT2Server(scenario, server, path=config.openrct2, headless=false) {
   let options = [
     'host',
     `${config.scenarios}/${scenario}`,
@@ -33,13 +37,13 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2) {
       return file === 'autosave';
     });
     if (check === undefined) {
-      return false;
+      return '';
     };
     let latest = '';
     let latestTime = new Date(0);
     const autosaves = readdirSync(`${path}/save/autosave`, 'utf8');
     if (autosaves.length === 0) {
-      return false;
+      return '';
     };
     for (let i = 0; i < autosaves.length; i++) {
       const time = statSync(`${path}/save/autosave/${autosaves[i]}`).ctime;
@@ -54,25 +58,48 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2) {
     options.push('--user-data-path');
     options.push(path);
   };
-  const childProcess = await spawn('openrct2', options);
+  if (headless === true) {
+    options.push('--headless');
+    runHeadless.push(server);
+  };
+  const childProcess = await spawn(`${process.env.HOME
+  || process.env.HOMEPATH
+  || process.env.USERPROFILE}/OpenRCT2/openrct2`, options);
   servers[server] = childProcess.pid;
-  servers[`${server}map`] = scenario.slice(0, scenario.length - 4);
+  if (!scenario.startsWith('AUTOSAVE')) {
+    serverMaps[server] = scenario.slice(0, scenario.length - 4);
+  };
   console.log(`Server #${server} PID -> ${servers[server]}`);
-  return true;
+  return serverMaps[server] === undefined ? 'AUTOSAVE' : serverMaps[server];
 };
 
 /**
  * Kills a running OpenRCT2 server.
  * 
  * @async
- * @function
- * @param {number} server number to kill
+ * @function killOpenRCT2Server
+ * @param {number} server - Server number to kill
  */
 async function killOpenRCT2Server(server) {
   await spawn('kill', ['-s', '1', servers[server]]);
+  if (runHeadless.includes(server)) {
+    runHeadless.splice(runHeadless.indexOf(server), 1);
+  };
+};
+
+/**
+ * Checks if a server is running headless.
+ * 
+ * @async
+ * @function checkServerIsHeadless
+ * @param {number} server - Server number to kill
+ */
+async function checkServerIsHeadless(server) {
+  return runHeadless.includes(server);
 };
 
 module.exports = {
-  runServer: runOpenRCT2Server,
+  checkHeadless: checkServerIsHeadless,
   killServer: killOpenRCT2Server,
+  runServer: runOpenRCT2Server,
 };

@@ -1,92 +1,106 @@
 /** Command module for checking OpenRCT2 server status
  * @module isup
- * @requires orct2master
+ * @requires orct2web
  */
-const orct2master = require('../functions/orct2master')
-
-let gtwIPv4s = [];
-
-/**
- * Load default GTW server IPs
- * @function
- * @param {string[]} GTW server ipv4s
- */
-function loadGTWServerIPv4s(ipv4s) {
-  gtwIPv4s = ipv4s;
-};
+const { getServerStatus } = require('../functions/orct2web');
+const { config } = require('../config');
 
 /**
- * Create server status message based on search results
+ * Checks for the status of an OpenRCT2 server (default GTW's servers).
+ * 
+ * @async
  * @function
- * @param {Object.<string, Object[]>} server search results
- * @param {string[]} inputs used to search
- * @returns {string} status message
+ * @param {Message} msg - Discord message object
+ * @param {string} content - Message contents
+ * @returns {string} log entry
  */
-const makeStatusMsg = function createServerStatusMessage(results, inputs) {
+async function checkServerIsOnline(msg, content) {
+  let input = content;
+  let scenarioDir = config.scenarios;
+  
+  //Defaults: GTW IPv4s
+  let inputs = [`${config.defaultip}:4801`, `${config.defaultip}:4802`];
+  
+  //Get Option
+  if (input.startsWith('-a') || input.startsWith('--all')) {
+    inputs = [];
+    input = input.slice(input.indexOf(' ') + 1).trim();
+  }
+  
+  //Split Search by , or ; Delimiters
+  else if (input.length > 0) {
+    inputs = /[,;]/.test(input)
+    ? input.split(/ *[,;]+ */)
+    : input.split(/ +/);
+  };
+  
+  //Get Server Status
+  const results = await getServerStatus(inputs);
+  let status = '';
   if (results.servers.length > 0) {
-    let status = '';
-
-    //Create body with successful servers found
-    results.servers.forEach(server => {
-      if (server.players === 1) {
-        status = `${status}*${server.name}* is **UP**!\nServer version: **${server.version}**\nThere is 1 player on.\n\n`;
-      }
-      else {
-        status = `${status}*${server.name}* is **UP**!\nServer version: **${server.version}**\nThere are ${server.players} players on.\n\n`;
+    if (inputs.length > 0) {
+      
+      //Create Message Body with Servers Found
+      for (let i = 0; i < results.servers.length; i++) {
+        status = `${status}*${results.servers[i].name}* is **UP**!\nServer version: **${results.servers[i].version}**\n`
+        status = results.servers[i].players === 1
+        ? `${status}There is 1 player on.\n\n`
+        : `${status}There are ${results.servers[i].players} players on.\n\n`;
       };
-    });
-    
-    //Create remaining body with unsuccessful search input
-    const fails = inputs.filter(input => results.successes.indexOf(input) === -1)
-    fails.forEach(fail => {
-      if (fails.includes(gtwIPv4s[0])) {
-        status = `${status}*(GTW\'s Nostalgia Server)* is not available.\n`;
-      }
-      else if (fails.includes(gtwIPv4s[1])) {
-        status = `${status}*(GTW\'s Nostalgia Server) #2* is not available.\n`;
-      }
-      else {
-        status = `${status}Could not find servers with \'*${fail}*\'\n`;
+      
+      const fails = inputs.filter(input => results.matches.indexOf(input) === -1);
+      for (let i = 0; i < fails.length; i++) {
+        if (
+          inputs.length === 2
+          && inputs.includes(`${config.defaultip}:4801`)
+          && inputs.includes(`${config.defaultip}:4802`)
+        ) {
+          if (fails[i] === `${config.defaultip}:4801`) {
+            status = `${status}*(GTW's Nostalgia Server)* is not available.\n`;
+          }
+          else if (fails[i] === `${config.defaultip}:4802`) {
+            status = `${status}*(GTW's Nostalgia Server) #2 (I.C.E.)* is not available.\n`;
+          };
+        }
+        else {
+          status = `${status}Could not find servers with '*${fails[i]}*'\n`;
+        };
       };
-    });
-    return status;
-  };
-  return('**No servers found with given input!**');
-};
-
-/**
- * Checks for the status of an OpenRCT2 server
- * (default GTW's servers)
- * @function
- * @param {Message} Discord message object
- * @param {string} message contents
- * @returns {string} log entry 
- */
-function isServerUpCommand(msg, content) {
-  
-  //Default input is GTW IPv4s
-  let inputs = gtwIPv4s;
-  
-  //Search input is given
-  if (content.length > 0) {
-    if (!/[^,;]/.test(content)) {
-      inputs = content.toLowerCase().split(/[,;]+/);
     }
+    
+    //Create Message Body with All Online Servers
     else {
-      inputs = content.toLowerCase().split(' ');
+      const pages = Math.ceil(results.servers.length/20);
+      const page = /^[1-9][0-9]*$/.test(input)
+      ? parseInt(input)
+      : 1;
+      if (page > pages || pages < 1) {
+        await msg.channel.send(pages === 1
+        ? 'There is only one page.'
+        : `Valid pages are between 1 and ${pages}`);
+        return 'Attempted to display server status. Invalid page entered.';
+      };
+      results.servers = results.servers.splice((20*(page - 1)), 20);
+      //Create Message Body with All Online Servers
+      for (let i = 0; i < results.servers.length; i++) {
+        status = `${status}${i + 1}.) *${results.servers[i].name}*\n`
+      };
+      status = `${status}\nPage: *${page}/${pages}*`;
     };
+    await msg.channel.send(status);
+    return 'Successfully searched and posted server status.';
+  }
+  else {
+    status = inputs.length === 2
+    && inputs.includes(`${config.defaultip}:4801`)
+    && inputs.includes(`${config.defaultip}:4802`)
+    ? `*(GTW's Nostalgia Server)* is not available.\n*(GTW's Nostalgia Server) #2 (I.C.E.)* is not available.\n`
+    : `Could not find servers with '*${inputs.join(' ')}*'\n`;
+    await msg.channel.send(status);
+    return 'Attempted to display server status. No servers found with given input(s).';
   };
-  return orct2master.getServerStatus(inputs)
-  .then(results => {
-    return makeStatusMsg(results, inputs);
-  })
-  .then(status => {
-    msg.channel.send(status);
-    return('Successfully searched and posted server status.');
-  });
 };
 
 module.exports = {
-  isUpCmd: isServerUpCommand,
-  loadGTWIPv4s: loadGTWServerIPv4s,
+  isUp: checkServerIsOnline
 };

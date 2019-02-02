@@ -9,9 +9,9 @@ const {
   statSync,
   mkdirSync,
   copyFileSync
-} = require('fs');
-const { config } = require('../config');
+} = require('fs');;
 const { getServerDir } = require('../functions/reader');
+const { config } = require('../config')
 
 const configurations = [
   'autosave',
@@ -74,14 +74,14 @@ async function createNewServerDirectory(path) {
 };
 
 /**
- * getS that the new value is valid with the configuration setting.
+ * Checks that the new value is valid with the configuration setting.
  * 
- * @async
- * @function
- * @param {string} setting being edited
- * @param {string} the net value to set
+ * @function testConfigurationSettingInput
+ * @param {string} setting - Setting being edited
+ * @param {string} value - The new value to set
+ * @returns {boolean} Indicate that the new value is valid.
  */
-async function testConfigurationSettingInput(setting, value) {
+const testInput = function testConfigurationSettingInput(setting, value) {
   if (setting === 'autosave') {
     if (/^[0-5]$/.test(value)) {
       return true;
@@ -127,10 +127,10 @@ async function testConfigurationSettingInput(setting, value) {
  * Shows information inside the config.ini file of a OpenRCT2 server directory.
  * 
  * @async
- * @function
- * @param {Message} Discord message object
- * @param {string} message contents
- * @returns {string} log entry
+ * @function showServerConfiguration
+ * @param {Message} msg - Discord message object
+ * @param {string} content - Message contents
+ * @returns {string} Log entry
  */
 async function showServerConfiguration(msg, content) {
   let server = 1;
@@ -193,10 +193,10 @@ async function showServerConfiguration(msg, content) {
  * Shows information inside the users.json file of a OpenRCT2 server directory.
  * 
  * @async
- * @function
- * @param {Message} Discord message object
- * @param {string} message contents
- * @returns {string} log entry
+ * @function showUserFileInformation
+ * @param {Message} msg - Discord message object
+ * @param {string} content - Message contents
+ * @returns {string} Log entry
  */
 async function showUserFileInformation(msg, content) {
   let search = '';
@@ -282,9 +282,12 @@ async function showUserFileInformation(msg, content) {
     : `Valid pages are between 1 and ${pages} for Server #${server}.`);
     return 'Attempted to display registered users. Invalid page entered.';
   };
-  const userString = results.splice(20*(page - 1), 20)
+  const userString = results.splice((20*(page - 1)), 20)
   .map(user => {
-    return `**${user.name}** (${groups[user.groupId].name})\n`;
+    if (user.groupId === null || groups[user.groupId] === undefined) {
+      return `**${user.name}** (*NULL*)`;
+    }
+    return `**${user.name}** (${groups[user.groupId].name})`;
   })
   .join('\n');
   await msg.channel.send(`Registered Users on Server #${server}:\n\n${userString}\n*Page ${page}/${pages}*`);
@@ -295,10 +298,10 @@ async function showUserFileInformation(msg, content) {
  * Shows information inside the groups.json file of a OpenRCT2 server directory.
  * 
  * @async
- * @function
- * @param {Message} Discord message object
- * @param {string} message contents
- * @returns {string} log entry
+ * @function showGroupFileInformation
+ * @param {Message} msg - Discord message object
+ * @param {string} content - Message contents
+ * @returns {string} Log entry
  */
 async function showGroupFileInformation(msg, content) {
   let server = 1;
@@ -364,10 +367,10 @@ async function showGroupFileInformation(msg, content) {
  * Edits the config.ini file in the desired server directory.
  * 
  * @async
- * @function
- * @param {Message} Discord message object
- * @param {string} message contents
- * @returns {string} log entry
+ * @function editServerConfiguration
+ * @param {Message} msg - Discord message object
+ * @param {string} content - Message contents
+ * @returns {string} Log entry
  */
 async function editServerConfiguration(msg, content) {
   let server = 1;
@@ -424,7 +427,7 @@ async function editServerConfiguration(msg, content) {
       return configName.includes(search);
     });
     console.log(search);
-    if (await testConfigurationSettingInput(setting, value)) {
+    if (testInput(setting, value)) {
       
       //Finalization before writing
       for (let i = 0; i < serverConfig.length; i++) {

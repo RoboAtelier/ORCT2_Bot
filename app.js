@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const fs = require('fs');
-const { logger, reader } = require('./functions');
+const { logger, reader, utils } = require('./functions');
 const cmds = require('./commands');
 const { config } = require('./config');
 
@@ -23,90 +23,139 @@ bot.on('message', async msg => {
       content = msg.content.replace(`${prefix}${cmd}`, '').trim();
       const usrLog = `${msg.author.username} called '${cmd}' on #${msg.channel.name} (${msg.channel.id}).`;
       const usrPath = `${config.userlogs}/${msg.author.id}-${msg.author.username.split('/').join('_')}`;
-      console.log(usrLog);
       await logger.writeLog(usrLog, usrPath);
       let cmdLog = '';
+      permLvl = utils.getPermLvl(msg.member);
       try {
-        if (['isup', 'up'].includes(cmd)) {
-          cmd = 'isup';
-          cmdLog = await cmds.isup.isUpCmd(msg, content);
-        }
-        else if (['devbuild', 'latest', 'dvb'].includes(cmd)) {
-          cmd = 'devbuild';
-          cmdLog = await cmds.checkver.checkVerCmd(msg, content, 'dev', config.devuri);
-        }
-        else if (['launcher', 'lnc'].includes(cmd)) {
-          cmd = 'launcher';
-          cmdLog = await cmds.checkver.checkVerCmd(msg, content, 'lnc', config.lncuri);
-        }
-        else if (['scenarios', 'maps'].includes(cmd)) {
-          if (
-            msg.member.roles.has(config.mod)
-            || msg.member.roles.has(config.admin)
-            || msg.member.roles.has(config.owner)
-            || config.botchannels.includes(msg.channel.name)
-          ) {
-            cmd = 'scenarios';
-            cmdLog = await cmds.scenarios.showScenarios(msg, content);
+        
+        //Admin Level Commands
+        if (permLvl > 2) {
+          
+          //Show Server Configuration
+          if (['config', 'conf'].includes(cmd)) {
+            cmd = 'svr_config';
+            cmdLog = await cmds.svr_config.showConfig(msg, content);
+          }
+          
+          //Edit Server Configuration
+          else if (['editconfig', 'editconf', 'chconf'].includes(cmd)) {
+            cmd = 'svr_config';
+            cmdLog = await cmds.svr_config.editConfig(msg, content);
+          }
+          
+          //Create Autochecker
+          else if (['autocheck', 'achk'].includes(cmd)) {
+            cmd = 'ivchecker';
+            cmdLog = await cmds.ivchecker.createChecker(msg, content);
+          }
+          
+          //Stop Autochecker
+          else if (['stopcheck', 'schk'].includes(cmd)) {
+            cmd = 'ivchecker';
+            cmdLog = await cmds.ivchecker.stopChecker(msg, `-s ${content}`);
           };
-        }
-        else if (
-          config.trustchannels.includes(msg.channel.name)
-          || config.adminchannels.includes(msg.channel.name)
-        ) {
-          if (['discard', 'remove', 'delete', 'del', 'rm'].includes(cmd)) {
+        };
+        
+        //Mod Level Commands
+        if (permLvl > 1 && cmdLog === '') {
+          
+          //Run OpenRCT2 Scenario on Server
+          if (['changemap', 'chmap', 'run', 'test'].includes(cmd)) {
+            cmd = 'svr_ops';
+            cmdLog = await cmds.svr_ops.run(msg, content);
+          }
+          
+          //Stop OpenRCT2 Server
+          else if (['kill', 'stop'].includes(cmd)) {
+            cmd = 'svr_ops';
+            cmdLog = await cmds.svr_ops.stop(msg, content);
+          }
+          
+          //Restart OpenRCT2 Server
+          else if (['restart'].includes(cmd)) {
+            cmd = 'svr_ops';
+            cmdLog = await cmds.svr_ops.run(msg, `-a ${content}`);
+          }
+          
+          //Show Registered Users
+          else if (['users', 'usrs'].includes(cmd)) {
+            cmd = 'svr_config';
+            cmdLog = await cmds.svr_config.showUsers(msg, content);
+          }
+          
+          //Show Server Groups
+          else if (['groups', 'grps'].includes(cmd)) {
+            cmd = 'svr_config';
+            cmdLog = await cmds.svr_config.showGroups(msg, content);
+          }
+          
+          //Discard Scenarios
+          else if (['remove', 'delete', 'del', 'rm'].includes(cmd)) {
             cmd = 'move';
             cmdLog = await cmds.scenarios.moveScenario(msg, content, 'discard');
           }
+          
+          //Restore Discarded Scenarios
           else if (['restore', 'res'].includes(cmd)) {
             cmd = 'move';
             cmdLog = await cmds.scenarios.moveScenario(msg, content, 'restore');
-          }
-          else if (['mapvote', 'votemap', 'vmap'].includes(cmd)) {
+          };
+        };
+        
+        //Trusted Level Commands
+        if (
+          (permLvl > 1
+          || (
+            permLvl === 1
+            && config.botchannels.includes(msg.channel.name)
+          ))
+          && cmdLog === ''
+        ) {
+          
+          //Vote for New Scenario
+          if (['mapvote', 'votemap', 'vmap'].includes(cmd)) {
             cmd = 'vote';
             cmdLog = await cmds.vote.startScenarioVote(msg, content);
           }
+          
+          //Cancel Map Vote
           else if (['nomapvote', 'novotemap', 'novmap'].includes(cmd)) {
             cmd = 'vote';
             cmdLog = await cmds.vote.cancelScenarioVote(msg, content);
+          };
+        };
+        
+        //Public Commands
+        if (cmdLog === '') {
+
+          //Ping GTW
+          if (['gtw'].includes(cmd)) {
+            await msg.channel.send(`<@${config.gtw}>`);
           }
-          else if (
-            msg.member.roles.has(config.mod)
-            || msg.member.roles.has(config.admin)
-            || msg.member.roles.has(config.owner)
-          ) {
-            if (['changemap', 'run'].includes(cmd)) {
-              cmd = 'svr_ops';
-              cmdLog = await cmds.svr_ops.run(msg, content);
-            }
-            else if (['restart'].includes(cmd)) {
-              cmd = 'svr_ops';
-              cmdLog = await cmds.svr_ops.run(msg, `-a ${content}`);
-            }
-            else if (['users', 'usrs'].includes(cmd)) {
-              cmd = 'svr_config';
-              cmdLog = await cmds.svr_config.showUsers(msg, content);
-            }
-            else if (['groups', 'grps'].includes(cmd)) {
-              cmd = 'svr_config';
-              cmdLog = await cmds.svr_config.showGroups(msg, content);
-            }
-            else if (
-              msg.member.roles.has(config.admin)
-              || msg.member.roles.has(config.owner)
-            ) {
-              if (['kill', 'stop'].includes(cmd)) {
-                cmd = 'svr_ops';
-                cmdLog = await cmds.svr_ops.stop(msg, content);
-              }
-              else if (['config', 'conf'].includes(cmd)) {
-                cmd = 'svr_config';
-                cmdLog = await cmds.svr_config.showConfig(msg, content);
-              }
-              else if (['editconfig', 'editconf', 'chconf'].includes(cmd)) {
-                cmd = 'svr_config';
-                cmdLog = await cmds.svr_config.editConfig(msg, content);
-              };
+          
+          //Get Latest Build Link
+          else if (['devbuild', 'latest', 'dvb'].includes(cmd)) {
+            cmd = 'devbuild';
+            cmdLog = await cmds.checkbuild.checkBuild(msg, `${content} dev`);
+          }
+          
+          //Get Latest Launcher Linnk
+          else if (['launcher', 'lnc'].includes(cmd)) {
+            cmd = 'launcher';
+            cmdLog = await cmds.checkbuild.checkBuild(msg, `${content} lnc`);
+          }
+          
+          //Check Server Status
+          else if (['isup', 'up'].includes(cmd)) {
+            cmd = 'isup';
+            cmdLog = await cmds.isup.isUp(msg, content);
+          }
+          
+          //Show Available Scenarios
+          else if (['scenarios', 'maps'].includes(cmd)) {
+            if (permLvl > 0 || config.botchannels.includes(msg.channel.name)) {
+              cmd = 'scenarios';
+              cmdLog = await cmds.scenarios.showScenarios(msg, content);
             };
           };
         };
@@ -132,5 +181,4 @@ bot.on('error', err => {
 });
 
 //Load config parameters
-cmds.isup.loadGTWIPv4s([config.server1ipv4, config.server2ipv4]);
 bot.login(config.token);
