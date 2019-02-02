@@ -52,7 +52,7 @@ bot.on('message', async msg => {
           //Stop Autochecker
           else if (['stopcheck', 'schk'].includes(cmd)) {
             cmd = 'ivchecker';
-            cmdLog = await cmds.ivchecker.stopChecker(msg, `-s ${content}`);
+            cmdLog = await cmds.ivchecker.stopChecker(msg, content);
           };
         };
         

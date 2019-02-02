@@ -7,8 +7,8 @@ const { getBuildHash, getBuildData, getServerStatus } = require('../functions/or
 const { checkHeadless, killServer, runServer } = require('../functions/orct2server');
 const { config } = require('../config');
 
-let devChecker = null;
-let lncChecker = null;
+let devChecker = undefined;
+let lncChecker = undefined;
 let serverCheckers = {};
 let serverDownCount = {};
 
@@ -39,47 +39,46 @@ async function createNewIntervalChecker(msg, content) {
     };
   };
   
-  if (option.length > 0) {
-    if (option.includes('s')) {
-      return await stopIntervalChecker(msg, input, option);
-    }
-    else if (option.includes('d') || content.startsWith('dev')) {
-      if (devChecker !== null) {
-        clearInterval(devChecker);
-      };
-      devChecker = setInterval(async () => {
-        const curHash = await getBuildHash('dev', config.devuri);
-        const oldHash = await readBotData('devhash');
-        if (curHash !== oldHash) {
-          await writeBotData('devhash', curHash);
-          const details = await getBuildData('dev', config.devuri);
-          //await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW OPENRCT2 BUILD**!\n\n${details}\n${config.devuri}`);
-          await msg.channel.send(`*BREAKING NEWS*\nThere's a **NEW OPENRCT2 BUILD**!\n\n${details}\n${config.devuri}`);
-        };
-      }, 300000);
-      await msg.channel.send('Running interval checker for develop builds.');
-      return 'Successfully created new interval checker for develop builds.';
-    }
-    else if (option.includes('l')
-      || content === 'lnc'
-      || content.startsWith('lau')
-    ) {
-      if (lncChecker !== null) {
-        clearInterval(lncChecker);
-      };
-      lncChecker = setInterval(async () => {
-        const curHash = await getBuildHash('lnc', config.lncuri);
-        const oldHash = await readBotData('lnchash');
-        if (curHash !== oldHash) {
-          await writeBotData('lnchash', curHash);
-          const details = await getBuildData('lnc', config.lncuri);
-          //await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW LAUNCHER BUILD**!\n\n${details}\n${config.lncuri}`);
-          await msg.channel.send(`*BREAKING NEWS*\nThere's a **NEW LAUNCHER BUILD**!\n\n${details}\n${config.lncuri}`);
-        };
-      }, 300000);
-      await msg.channel.send('Running interval checker for launcher builds.');
-      return 'Successfully created new interval checker for launcher builds.';
+  if (option.includes('s')) {
+    return await stopIntervalChecker(msg, input, option);
+  }
+  else if (option.includes('d') || input.startsWith('dev')) {
+    if (devChecker !== undefined) {
+      await msg.channel.send(`I am already checking develop builds.`);
+      return 'Attempted to start interval checker. Checker already running for develop builds.';
     };
+    devChecker = setInterval(async () => {
+      const curHash = await getBuildHash('dev', config.devuri);
+      const oldHash = await readBotData('devhash');
+      if (curHash !== oldHash) {
+        await writeBotData('devhash', curHash);
+        const details = await getBuildData('dev', config.devuri);
+        await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW OPENRCT2 BUILD**!\n\n${details}\n${config.devuri}`);
+      };
+    }, 300000);
+    await msg.channel.send('Running interval checker for develop builds.');
+    return 'Successfully created new interval checker for develop builds.';
+  }
+  else if (
+    option.includes('l')
+    || input === 'lnc'
+    || input.startsWith('lau')
+  ) {
+    if (lncChecker !== undefined) {
+      await msg.channel.send(`I am already checking launcher builds.`);
+      return 'Attempted to start interval checker. Checker already running for launcher builds.';
+    };
+    lncChecker = setInterval(async () => {
+      const curHash = await getBuildHash('lnc', config.lncuri);
+      const oldHash = await readBotData('lnchash');
+      if (curHash !== oldHash) {
+        await writeBotData('lnchash', curHash);
+        const details = await getBuildData('lnc', config.lncuri);
+        await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW LAUNCHER BUILD**!\n\n${details}\n${config.lncuri}`);
+      };
+    }, 300000);
+    await msg.channel.send('Running interval checker for launcher builds.');
+    return 'Successfully created new interval checker for launcher builds.';
   }
   else {
     let serverDir = config.openrct2;
@@ -92,10 +91,13 @@ async function createNewIntervalChecker(msg, content) {
         serverDir = `${serverDir}/s${server}-Server${server}`;
       };
     };
-    const port = readServerConfig(serverDir, 'default_port');
+    if (serverCheckers[server] !== undefined) {
+      await msg.channel.send(`I am already checking for Server #${server}.`);
+      return 'Attempted to start interval checker. Checker already running for server.';
+    };
+    const port = await readServerConfig(serverDir, 'default_port');
     const ip = `${config.defaultip}:${port}`;
     const serverChecker = setInterval(async () => {
-      console.log('beep');
       const check = await getServerStatus([ip]);
       if (check.servers.length === 0) {
         serverDownCount[server] === undefined
@@ -109,13 +111,13 @@ async function createNewIntervalChecker(msg, content) {
           : await runServer('AUTOSAVE', server, serverDir);
         }
         else if (serverDownCount[server] === 3) {
-          await msg.guild.channels.get(config.mainchannel).send(`Server #${server} is not communicating properly or the master server is down.`);
+          await msg.guild.channels.get(config.mainchannel).send(`Server #${server} is not working properly or the master server is down.`);
         };
       }
       else {
         serverDownCount[server] = 0;
       };
-    }, 120000);
+    }, 90000);
     serverCheckers[server] = serverChecker;
     await msg.channel.send(`Running interval checker for Server #${server}.`);
     return 'Successfully created new interval checker for a server.';
@@ -134,9 +136,9 @@ async function createNewIntervalChecker(msg, content) {
  */
 async function stopIntervalChecker(msg, content, option='') {
   if (option.includes('d') || content.startsWith('dev')) {
-    if (devChecker !== null) {
+    if (devChecker !== undefined) {
       clearInterval(devChecker);
-      devChecker = null;
+      devChecker = undefined;
       await msg.channel.send('Stopped checking for develop builds.');
       return 'Successfully stopped interval checker for develop builds.';
     }
@@ -150,9 +152,9 @@ async function stopIntervalChecker(msg, content, option='') {
     || content === 'lnc'
     || content.startsWith('lau')
   ) {
-    if (lncChecker !== null) {
+    if (lncChecker !== undefined) {
       clearInterval(lncChecker);
-      lncChecker = null;
+      lncChecker = undefined;
       await msg.channel.send('Stopped checking for launcher builds.');
       return 'Successfully stopped interval checker for launcher builds.';
     }
@@ -163,12 +165,9 @@ async function stopIntervalChecker(msg, content, option='') {
   }
   else if (/^[1-9][0-9]*$/.test(content)) {
     server = parseInt(content);
-    if (
-      !(serverCheckers[server] === undefined
-      || serverCheckers[server] === null)
-    ) {
+    if (serverCheckers[server] !== undefined) {
       clearInterval(serverCheckers[server]);
-      serverCheckers[server] = null;
+      serverCheckers[server] = undefined;
       await msg.channel.send(`Stopped checking for status of Server #${server}.`);
       return 'Successfully stopped interval checker for a server.';
     }
