@@ -1,14 +1,14 @@
 /** Manages hosted OpenRCT2 servers
  * @module orct2server
- * @requires fs, child_process
+ * @requires fs, child_process, reader
  */
 const { readFileSync, readdirSync, statSync } = require('fs');
-const { spawn, exec } = require('child_process');
+const { spawn } = require('child_process');
+const { getLatestAutosave } = require('./reader');
 const { config } = require('../config');
 
 let servers = {};
 let serverMaps = {};
-let runHeadless = [];
 
 /**
  * Runs a OpenRCT2 server with a given scenario.
@@ -33,26 +33,17 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
   });
   options.push(port);
   if (scenario.startsWith('AUTOSAVE')) {
-    const check = readdirSync(`${path}/save`, 'utf8').find(file => {
-      return file === 'autosave';
-    });
-    if (check === undefined) {
+    let dir = config.openrct2;
+    if (server > 1) {
+      dir = await getServerDirectory(server);
+    };
+    const autosave = await getLatestAutosave(dir);
+    if (autosave.length > 0) {
+      options[1] = `${path}/autosave/${autosave}`
+    }
+    else {
       return '';
     };
-    let latest = '';
-    let latestTime = new Date(0);
-    const autosaves = readdirSync(`${path}/save/autosave`, 'utf8');
-    if (autosaves.length === 0) {
-      return '';
-    };
-    for (let i = 0; i < autosaves.length; i++) {
-      const time = statSync(`${path}/save/autosave/${autosaves[i]}`).ctime;
-      if (time > latestTime) {
-        latest = autosaves[i];
-        latestTime = time;
-      };
-    };
-    options[1] = `${path}/save/autosave/${latest}`;
   };
   if (server > 1) {
     options.push('--user-data-path');
@@ -60,7 +51,6 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
   };
   if (headless === true) {
     options.push('--headless');
-    runHeadless.push(server);
   };
   const childProcess = await spawn(`${process.env.HOME
   || process.env.HOMEPATH
@@ -82,24 +72,15 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
  */
 async function killOpenRCT2Server(server) {
   await spawn('kill', ['-s', '1', servers[server]]);
-  if (runHeadless.includes(server)) {
-    runHeadless.splice(runHeadless.indexOf(server), 1);
-  };
+  servers[server] = undefined;
 };
 
-/**
- * Checks if a server is running headless.
- * 
- * @async
- * @function checkServerIsHeadless
- * @param {number} server - Server number to kill
- */
-async function checkServerIsHeadless(server) {
-  return runHeadless.includes(server);
+async function getServerScenario(server) {
+  return serverMaps[server];
 };
 
 module.exports = {
-  checkHeadless: checkServerIsHeadless,
+  getScenario: getServerScenario,
   killServer: killOpenRCT2Server,
   runServer: runOpenRCT2Server,
 };

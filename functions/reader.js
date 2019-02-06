@@ -2,7 +2,7 @@
  * @module reader
  * @requires fs
  */
-const { readFileSync, readdirSync } = require('fs');
+const { readFileSync, readdirSync, statSync } = require('fs');
 const { config } = require('../config');
 
 /**
@@ -14,10 +14,25 @@ const { config } = require('../config');
  * @returns {string} Path to server directory or a blank string.
  */
 async function getServerDirectory(server) {
-  const serverDir = readdirSync(config.openrct2).find(item => {
+  const dir = readdirSync(config.openrct2).find(item => {
     return item.startsWith(`s${server}-`);
   });
-  return serverDir === undefined ? '' : `${config.openrct2}/${serverDir}`;
+  return dir === undefined ? '' : `${config.openrct2}/${dir}`;
+};
+
+/**
+ * Gets the premade preview screenshot of a scenario if it exists.
+ * 
+ * @async
+ * @function getScenarioPreviewScreenshot
+ * @param {string} scenario - Scenario name
+ * @returns {string} Preview .png name or a blank string.
+ */
+async function getScenarioPreviewScreenshot(scenario) {
+  const preview = readdirSync(`${config.scenarios}/previews`).find(item => {
+    return item.slice(0, item.length - 4).toLowerCase() === scenario.slice(0, scenario.length - 4).toLowerCase();
+  });
+  return preview === undefined ? '' : preview;
 };
 
 /**
@@ -33,12 +48,56 @@ async function getScenarios(path = config.scenarios, search = '') {
   let scenarios = readdirSync(path).filter(scenario => {
     return /\.s[vc][46]$/i.test(scenario);
   });
-  if (search.length > 0) {
+  if (/^'[^']+'$|^"[^"]+"$/.test(search)) {
+    let exact = '';
+    if (search.includes('\'')) {
+      exact = search.slice(1, search.slice(1).indexOf('\'') + 1);
+    }
+    else if (search.includes('"')) {
+      exact = search.slice(1, search.slice(1).indexOf('"') + 1);
+    };
+    scenarios = scenarios.filter(scenario => {
+      return scenario.slice(0, scenario.length - 4).toLowerCase() === exact.toLowerCase();
+    });
+  }
+  else if (search.length > 0) {
     scenarios = scenarios.filter(scenario => {
       return scenario.slice(0, scenario.length - 4).toLowerCase().includes(search.toLowerCase());
     });
-  }
+  };
   return scenarios;
+};
+
+/**
+ * Gets latest autosave in a server directory.
+ * 
+ * @async
+ * @function getLatestAutosave
+ * @param {string} dir - Server directory to look in
+ * @returns {string} Name of matched autosave if found.
+ */
+async function getLatestAutosave(dir) {
+  let path = `${dir}/save`;
+  const check = readdirSync(`${path}`, 'utf8').find(file => {
+    return file === 'autosave';
+  });
+  if (check === undefined) {
+    return '';
+  };
+  const autosaves = readdirSync(`${path}/autosave`, 'utf8');
+  if (autosaves.length === 0) {
+    return '';
+  };
+  let latest = '';
+  let latestTime = new Date(0);
+  for (let i = 0; i < autosaves.length; i++) {
+    const time = statSync(`${path}/autosave/${autosaves[i]}`).ctime;
+    if (time > latestTime) {
+      latest = autosaves[i];
+      latestTime = time;
+    };
+  };
+  return latest;
 };
 
 /**
@@ -85,6 +144,8 @@ async function readServerConfig(dir = config.openrct2, field = '') {
 };
 
 module.exports = {
+  getLatestAutosave,
+  getPreview: getScenarioPreviewScreenshot,
   getScenarios,
   getServerDir: getServerDirectory,
   readBotData,

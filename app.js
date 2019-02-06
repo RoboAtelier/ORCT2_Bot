@@ -1,10 +1,30 @@
 const Discord = require('discord.js');
 const fs = require('fs');
-const { logger, reader, utils } = require('./functions');
+const { logger, reader } = require('./functions');
 const cmds = require('./commands');
 const { config } = require('./config');
 
 const bot = new Discord.Client();
+
+/**
+ * Get permission level of the Discord guild member.
+ * 
+ * @function getPermissionLevel
+ * @param {Member} member - Discord member object
+ * @returns {number} Permission level of the guild member.
+ */
+function getPermissionLevel(member) {
+  if (member.roles.has(config.owner) || member.roles.has(config.admin)) {
+    return 3;
+  }
+  else if (member.roles.has(config.mod)) {
+    return 2;
+  }
+  else if (member.roles.has(config.trusted)) {
+    return 1;
+  }
+  return 0;
+};
 
 bot.on('ready', () => {
   console.log(`Logged in as ${bot.user.tag}!`);
@@ -25,7 +45,7 @@ bot.on('message', async msg => {
       const usrPath = `${config.userlogs}/${msg.author.id}-${msg.author.username.split('/').join('_')}`;
       await logger.writeLog(usrLog, usrPath);
       let cmdLog = '';
-      permLvl = utils.getPermLvl(msg.member);
+      permLvl = getPermissionLevel(msg.member);
       try {
         
         //Admin Level Commands
@@ -41,6 +61,21 @@ bot.on('message', async msg => {
           else if (['editconfig', 'editconf', 'chconf'].includes(cmd)) {
             cmd = 'svr_config';
             cmdLog = await cmds.svr_config.editConfig(msg, content);
+          }
+          
+          else if (['preview', 'pvw'].includes(cmd)) {
+            cmd = 'screenshot';
+            cmdLog = await cmds.screenshot.previewMap(msg, content);
+          }
+          
+          else if (['screenshot', 'peek'].includes(cmd)) {
+            cmd = 'screenshot';
+            cmdLog = await cmds.screenshot.peekServer(msg, content);
+          }
+          
+          else if (['finalize', 'fin'].includes(cmd)) {
+            cmd = 'screenshot';
+            cmdLog = await cmds.screenshot.finalize(msg, content);
           }
           
           //Create Autochecker
@@ -60,7 +95,7 @@ bot.on('message', async msg => {
         if (permLvl > 1 && cmdLog === '') {
           
           //Run OpenRCT2 Scenario on Server
-          if (['changemap', 'chmap', 'run', 'test'].includes(cmd)) {
+          if (['changemap', 'chmap', 'run'].includes(cmd)) {
             cmd = 'svr_ops';
             cmdLog = await cmds.svr_ops.run(msg, content);
           }
@@ -159,7 +194,7 @@ bot.on('message', async msg => {
             };
           };
         };
-        if (cmdLog.length > 0) {
+        if (cmdLog !== undefined && cmdLog.length > 0) {
           console.log(cmdLog);
           await logger.writeLog(cmdLog, usrPath);
         };

@@ -1,15 +1,17 @@
-/** Runs and monitors interval checking processes
+/** Command module that monitors certains processes
  * @module ivchecker
+ * @requires reader, writer, orct2web, orct2server
  */
 const { getServerDir, readBotData, readServerConfig } = require('../functions/reader');
 const { writeBotData } = require('../functions/writer');
 const { getBuildHash, getBuildData, getServerStatus } = require('../functions/orct2web');
-const { checkHeadless, killServer, runServer } = require('../functions/orct2server');
+const { killServer, runServer } = require('../functions/orct2server');
 const { config } = require('../config');
 
 let devChecker = undefined;
 let lncChecker = undefined;
-let serverCheckers = {};
+let serverChecker = undefined;
+let serverQueue = [];
 let serverDownCount = {};
 
 /**
@@ -23,9 +25,9 @@ let serverDownCount = {};
  * @returns {string} Log entry
  */
 async function createNewIntervalChecker(msg, content) {
+  let input = content;
   let server = 1;
   let option = '';
-  let input = content;
   
   //Get Option
   if (input.startsWith('-')) {
@@ -44,8 +46,7 @@ async function createNewIntervalChecker(msg, content) {
   }
   else if (option.includes('d') || input.startsWith('dev')) {
     if (devChecker !== undefined) {
-      await msg.channel.send(`I am already checking develop builds.`);
-      return 'Attempted to start interval checker. Checker already running for develop builds.';
+      clearInterval(devChecker);
     };
     devChecker = setInterval(async () => {
       const curHash = await getBuildHash('dev', config.devuri);
@@ -65,8 +66,7 @@ async function createNewIntervalChecker(msg, content) {
     || input.startsWith('lau')
   ) {
     if (lncChecker !== undefined) {
-      await msg.channel.send(`I am already checking launcher builds.`);
-      return 'Attempted to start interval checker. Checker already running for launcher builds.';
+      clearInterval(lncChecker);
     };
     lncChecker = setInterval(async () => {
       const curHash = await getBuildHash('lnc', config.lncuri);
@@ -81,44 +81,52 @@ async function createNewIntervalChecker(msg, content) {
     return 'Successfully created new interval checker for launcher builds.';
   }
   else {
-    let serverDir = config.openrct2;
     if (/^[1-9][0-9]*$/.test(input)) {
       server = parseInt(input);
     };
     if (server > 1) {
-      serverDir = await getServerDir(server);
-      if (serverDir.length === 0) {
-        serverDir = `${serverDir}/s${server}-Server${server}`;
+      const dirCheck = await getServerDir(server);
+      if (dirCheck.length === 0) {
+        await msg.channel.send(`Server #${server} folder doesn't exist. You can make one using the 'config' command.`);
+        return 'Attempted to start interval checker. Selected server directory does not exist.';
       };
     };
-    if (serverCheckers[server] !== undefined) {
-      await msg.channel.send(`I am already checking for Server #${server}.`);
-      return 'Attempted to start interval checker. Checker already running for server.';
+    if (serverQueue.includes(server)) {
+      clearInterval(serverChecker);
     };
-    const port = await readServerConfig(serverDir, 'default_port');
-    const ip = `${config.defaultip}:${port}`;
-    const serverChecker = setInterval(async () => {
-      const check = await getServerStatus([ip]);
-      if (check.servers.length === 0) {
-        serverDownCount[server] === undefined
-        ? serverDownCount[server] = 1
-        : serverDownCount[server] = serverDownCount[server] + 1;
-        if (serverDownCount[server] < 3) {
-          await msg.guild.channels.get(config.mainchannel).send(`Hmm... Server #${server} appears to be down, restarting!`);
-          await killServer(server);
-          await checkHeadless(server)
-          ? await runServer('AUTOSAVE', server, serverDir, true)
-          : await runServer('AUTOSAVE', server, serverDir);
-        }
-        else if (serverDownCount[server] === 3) {
-          await msg.guild.channels.get(config.mainchannel).send(`Server #${server} is not working properly or the master server is down.`);
+    serverQueue.push(server);
+    serverChecker = setInterval(async () => {
+      let ips = [];
+      let ipKeys = {};
+      for (let i = 0; i < serverQueue.length; i++) {
+        const serverDir = await getServerDir(server);
+        const port = await readServerConfig(serverDir, 'default_port');
+        const ip = `${config.defaultip}:${port}`;
+        ipKeys[ip] = server;
+        ips.push(ip);
+      };
+      const check = await getServerStatus(ips);
+      if (check.matches.length !== ips.length) {
+        for (let i = 0; i < ips.length; i++) {
+          if (check.matches.includes(ips[i])) {
+            serverDownCount[server] = 0;
+          }
+          else {
+            serverDownCount[server] === undefined
+            ? serverDownCount[server] = 1
+            : serverDownCount[server] = serverDownCount[server] + 1;
+            if (serverDownCount[server] < 3) {
+              await killServer(server);
+              await runServer('AUTOSAVE', server, serverDir);
+              await msg.guild.channels.get(config.mainchannel).send(`Hmm... Server #${server} appears to be down, restarting!`);
+            }
+            else if (serverDownCount[server] === 3) {
+              await msg.guild.channels.get(config.mainchannel).send(`Server #${server} is not working properly or the master server is down.`);
+            };
+          };
         };
-      }
-      else {
-        serverDownCount[server] = 0;
       };
-    }, 90000);
-    serverCheckers[server] = serverChecker;
+    }, 300000);
     await msg.channel.send(`Running interval checker for Server #${server}.`);
     return 'Successfully created new interval checker for a server.';
   };
@@ -165,9 +173,13 @@ async function stopIntervalChecker(msg, content, option='') {
   }
   else if (/^[1-9][0-9]*$/.test(content)) {
     server = parseInt(content);
-    if (serverCheckers[server] !== undefined) {
-      clearInterval(serverCheckers[server]);
-      serverCheckers[server] = undefined;
+    if (serverQueue.includes(server)) {
+      serverQueue.splice(serverQueue.indexOf(server), 1);
+      serverDownCount[server] = undefined;
+      if (serverQueue.length === 0) {
+        clearInterval(serverChecker);
+        serverChecker = undefined;
+      };
       await msg.channel.send(`Stopped checking for status of Server #${server}.`);
       return 'Successfully stopped interval checker for a server.';
     }

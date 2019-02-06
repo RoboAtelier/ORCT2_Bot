@@ -1,11 +1,11 @@
 /** Command module to perform server operations
- * @module svrops
- * @requires fs
+ * @module svr_ops
+ * @requires fs, reader, orct2server
  */
 const { readdirSync, readFileSync } = require('fs');
-const { config } = require ('../config');
 const { runServer, killServer } = require('../functions/orct2server');
 const { getScenarios, getServerDir } = require('../functions/reader');
+const { config } = require ('../config');
 
 /**
  * Run a new scenario for a server.
@@ -38,7 +38,7 @@ async function runNewServerScenario(msg, content) {
   //Get Server Directory
   if (/^[1-9][0-9]* /.test(input)) {
     server = parseInt(input.slice(0, input.indexOf(' ')));
-    input = input.slice(content.indexOf(' ') + 1).trim();
+    input = input.slice(input.indexOf(' ') + 1).trim();
   }
   else if (/^[1-9][0-9]*$/.test(input)) {
     server = parseInt(input);
@@ -47,7 +47,7 @@ async function runNewServerScenario(msg, content) {
   if (server > 1) {
     serverDir = await getServerDir(server);
     if (serverDir.length === 0) {
-      await msg.channel.send(`Server #${server} folder doesn't exist. You can make one using the 'config' command.`);
+      await msg.channel.send(`Server #${server} folder doesn't exist.`);
       return 'Attempted to run a server. Selected server directory does not exist.';
     };
   };
@@ -77,27 +77,12 @@ async function runNewServerScenario(msg, content) {
   
   //Scenario Filtering
   let results = [];
-  if (/^'[^']+'$|^"[^"]+"$/.test(input)) {
-    let search = '';
-    if (input.includes('\'')) {
-      search = input.slice(1, input.slice(1).indexOf('\'') + 1);
-    }
-    else if (input.includes('"')) {
-      search = input.slice(1, input.slice(1).indexOf('"') + 1);
-    };
+  if (option.includes('r')) {
     const scenarios = await getScenarios();
-    results = scenarios.filter(scenario => {
-      return scenario.slice(0, scenario.length - 4).toLowerCase() === search.toLowerCase();
-    });
+    results = scenarios.splice(Math.floor(Math.random()*scenarios.length), 1);
   }
   else {
-    if (option.includes('r')) {
-      const scenarios = await getScenarios();
-      results = scenarios.splice(Math.floor(Math.random()*scenarios.length), 1);
-    }
-    else {
-      results = await getScenarios(config.scenarios, input);
-    };
+    results = await getScenarios(config.scenarios, input);
   };
   if (results.length > 1) {
     await msg.channel.send(`'${input}' returned multiple scenarios:\n\n${results.splice(0, 20).join('\n')}\n\nPlease enter a more exact name.`);

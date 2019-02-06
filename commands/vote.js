@@ -23,8 +23,8 @@ const voteEmojis = [
 let scenarioVote = {
   active: false,
   scenarios: [],
-  msg: null,
-  session: null,
+  msg: undefined,
+  session: undefined,
 };
 let generalVoteSessions = [];
 let lastChange = new Date(0);
@@ -43,8 +43,8 @@ async function cancelScenarioVote(msg) {
     scenarioVote.active = false;
     await scenarioVote.msg.channel.send('Scenario voting cancelled!');
     await scenarioVote.msg.delete();
-    scenarioVote.msg = null;
-    scenarioVote.session = null;
+    scenarioVote.msg = undefined;
+    scenarioVote.session = undefined;
     return 'Successfully ended a scenario vote.';
   }
   else {
@@ -73,7 +73,7 @@ async function startScenarioVote(msg, content) {
       //Vote cooldown if not Moderator+ - 5 minutes
       const diff = (new Date() - lastChange)/60000;
       if (diff < 2) {
-        const timeString = diff >= 1 ? 'minute' : 'minutes';
+        const timeString = diff === 1 ? 'minute' : 'minutes';
         await msg.channel.send(`Scenario voting just finished recently. You must wait about ${2 - Math.floor(diff)} ${timeString} before starting a new vote.`);
         return 'Attempted to start a scenario vote. Scenario vote already finished recently.'
       };
@@ -202,23 +202,26 @@ async function startScenarioVote(msg, content) {
           });
           const reaction = top[Math.floor(Math.random()*top.length)];
           scenario = voteChoices[voteEmojis.indexOf(reaction.emoji.name)];
+          const voteCount = highest - 1 === 1
+          ? '1 vote'
+          : `${highest} votes`;
           top.length === 1
-          ? await voteMsg.edit(`${voteMsg.content}\n\nSelected scenario: **${scenario.substring(0, scenario.length - 4)}** (${highest} votes)\n\nMap change in 10 seconds.`)
+          ? await voteMsg.edit(`${voteMsg.content}\n\nSelected scenario: **${scenario.substring(0, scenario.length - 4)}** (${voteCount})\n\nMap change in 10 seconds.`)
           : await voteMsg.edit(`${voteMsg.content}\n\nThere was a tie! Randomly picked: **${scenario.substring(0, scenario.length - 4)}** (${highest} votes)\n\nMap change in 10 seconds.`);
         };
         if (scenario.length > 0) {
           scenarioVote.session = setTimeout(async () => {
             lastChange = new Date();
             scenarioVote.active = false;
-            scenarioVote.session = null;
+            scenarioVote.session = undefined;
             await killServer(1);
             await runServer(scenario, 1);
-            await msg.guild.channels.get(config.mainchannel).send(`Starting up **${scenario.substring(0, pick[0].length - 4)}** on Server #${server}.`);
+            await msg.guild.channels.get(config.mainchannel).send(`Starting up **${scenario.substring(0, top[0].length - 4)}** on Server #${server}.`);
           }, 10000);
         }
         else {
           scenarioVote.active = false;
-          scenarioVote.session = null;
+          scenarioVote.session = undefined;
         };
       }, 30000);
       await voteMsg.edit(`${voteMsg.content}\n\n**Voting will end in 30 seconds! Please take this time to save as well.**`);
@@ -227,8 +230,8 @@ async function startScenarioVote(msg, content) {
   }
   catch(err) {
     scenarioVote.active = false;
-    scenarioVote.msg = null;
-    scenarioVote.session = null;
+    scenarioVote.msg = undefined;
+    scenarioVote.session = undefined;
     throw err;
   };
 };

@@ -1,6 +1,6 @@
 /** Command module to manage and see server configuration files
- * @module svrconfig
- * @requires fs
+ * @module svr_config
+ * @requires fs, reader
  */
 const {
   readFileSync,
@@ -143,7 +143,7 @@ async function showServerConfiguration(msg, content) {
   if (server > 1) {
     serverDir = await getServerDir(server);
     if (serverDir.length === 0) {
-      serverDir = `${serverDir}/s${server}-Server${server}`;
+      serverDir = `${config.openrct2}/s${server}-Server${server}`;
       await createNewServerDirectory(serverDir);
     };
   };
@@ -217,8 +217,8 @@ async function showUserFileInformation(msg, content) {
   if (server > 1) {
     serverDir = await getServerDir(server);
     if (serverDir.length === 0) {
-      serverDir = `${serverDir}/s${server}-Server${server}`;
-      await createNewServerDirectory(serverDir);
+      await msg.channel.send(`Server #${server} folder doesn't exist.`);
+      return 'Attempted to display registered users. Selected server directory does not exist.';
     };
   };
   
@@ -320,8 +320,8 @@ async function showGroupFileInformation(msg, content) {
   if (server > 1) {
     serverDir = await getServerDir(server);
     if (serverDir.length === 0) {
-      serverDir = `${serverDir}/s${server}-Server${server}`;
-      await createNewServerDirectory(serverDir);
+      await msg.channel.send(`Server #${server} folder doesn't exist.`);
+      return 'Attempted to display group info. Selected server directory does not exist.';
     };
   };
   
