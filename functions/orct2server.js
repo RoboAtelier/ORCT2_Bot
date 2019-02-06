@@ -39,7 +39,7 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
     };
     const autosave = await getLatestAutosave(dir);
     if (autosave.length > 0) {
-      options[1] = `${path}/autosave/${autosave}`
+      options[1] = `${path}/save/autosave/${autosave}`
     }
     else {
       return '';
