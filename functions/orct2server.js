@@ -4,7 +4,7 @@
  */
 const { readFileSync, readdirSync, statSync } = require('fs');
 const { spawn } = require('child_process');
-const { getLatestAutosave } = require('./reader');
+const { getLatestAutosave, getServerDir } = require('./reader');
 const { config } = require('../config');
 
 let servers = {};
@@ -35,7 +35,7 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
   if (scenario.startsWith('AUTOSAVE')) {
     let dir = config.openrct2;
     if (server > 1) {
-      dir = await getServerDirectory(server);
+      dir = await getServerDir(server);
     };
     const autosave = await getLatestAutosave(dir);
     if (autosave.length > 0) {
