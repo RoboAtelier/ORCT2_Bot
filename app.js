@@ -63,21 +63,6 @@ bot.on('message', async msg => {
             cmdLog = await cmds.svr_config.editConfig(msg, content);
           }
           
-          else if (['preview', 'pvw'].includes(cmd)) {
-            cmd = 'screenshot';
-            cmdLog = await cmds.screenshot.previewMap(msg, content);
-          }
-          
-          else if (['screenshot', 'peek'].includes(cmd)) {
-            cmd = 'screenshot';
-            cmdLog = await cmds.screenshot.peekServer(msg, content);
-          }
-          
-          else if (['finalize', 'fin'].includes(cmd)) {
-            cmd = 'screenshot';
-            cmdLog = await cmds.screenshot.finalize(msg, content);
-          }
-          
           //Create Autochecker
           else if (['autocheck', 'achk'].includes(cmd)) {
             cmd = 'ivchecker';
@@ -124,6 +109,12 @@ bot.on('message', async msg => {
             cmdLog = await cmds.svr_config.showGroups(msg, content);
           }
           
+          //Finalize Server Scenario
+          else if (['finalize', 'fin'].includes(cmd)) {
+            cmd = 'screenshot';
+            cmdLog = await cmds.screenshot.finalize(msg, content);
+          }
+          
           //Discard Scenarios
           else if (['remove', 'delete', 'del', 'rm'].includes(cmd)) {
             cmd = 'move';
@@ -146,6 +137,18 @@ bot.on('message', async msg => {
           ))
           && cmdLog === ''
         ) {
+          
+          //Preview Scenario
+          else if (['preview', 'pvw'].includes(cmd)) {
+            cmd = 'screenshot';
+            cmdLog = await cmds.screenshot.previewMap(msg, content);
+          }
+          
+          //Screenshot Current Server Progress
+          else if (['screenshot', 'peek'].includes(cmd)) {
+            cmd = 'screenshot';
+            cmdLog = await cmds.screenshot.peekServer(msg, content);
+          }
           
           //Vote for New Scenario
           if (['mapvote', 'votemap', 'vmap'].includes(cmd)) {
