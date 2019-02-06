@@ -139,7 +139,7 @@ bot.on('message', async msg => {
         ) {
           
           //Preview Scenario
-          else if (['preview', 'pvw'].includes(cmd)) {
+          if (['preview', 'pvw'].includes(cmd)) {
             cmd = 'screenshot';
             cmdLog = await cmds.screenshot.previewMap(msg, content);
           }
@@ -151,7 +151,7 @@ bot.on('message', async msg => {
           }
           
           //Vote for New Scenario
-          if (['mapvote', 'votemap', 'vmap'].includes(cmd)) {
+          else if (['mapvote', 'votemap', 'vmap'].includes(cmd)) {
             cmd = 'vote';
             cmdLog = await cmds.vote.startScenarioVote(msg, content);
           }
