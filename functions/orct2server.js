@@ -2,8 +2,8 @@
  * @module orct2server
  * @requires fs, child_process, reader
  */
-const { readFileSync, readdirSync, statSync } = require('fs');
 const { spawn } = require('child_process');
+const { readFileSync, readdirSync, statSync } = require('fs');
 const { getLatestAutosave, getServerDir } = require('./reader');
 const { config } = require('../config');
 

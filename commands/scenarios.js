@@ -26,7 +26,7 @@ async function showScenarios(msg, content) {
   if (input.startsWith('-d') || input.startsWith('--discarded')) {
     if (input.includes(' ')) {
       option = input.slice(0, input.indexOf(' '));
-      input = input.slice(input.indexOf(' ') + 1).trim();
+      input = input.slice(input.indexOf(' ') + 2).trim();
     }
     else {
       option = input;
@@ -39,12 +39,12 @@ async function showScenarios(msg, content) {
   let results = [];
   if (/^'[^']+'|^"[^"]+"/.test(input)) {
     if (/^'[^']+' /.test(input)) {
-      search = input.slice(0, input.slice(1).indexOf('\'') + 1);
-      input = input.slice(input.slice(1).indexOf('\'') + 2).trim();
+      search = input.slice(0, input.slice(1).indexOf('\'') + 2);
+      input = input.slice(input.slice(1).indexOf('\'') + 3).trim();
     }
     else if (/^"[^"]+" /.test(input)) {
-      search = input.slice(0, input.slice(1).indexOf('"') + 1);
-      input = input.slice(input.slice(1).indexOf('"') + 2).trim();
+      search = input.slice(0, input.slice(1).indexOf('"') + 2);
+      input = input.slice(input.slice(1).indexOf('"') + 3).trim();
     }
     else {
       search = input;

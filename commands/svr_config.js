@@ -232,11 +232,11 @@ async function showUserFileInformation(msg, content) {
   let results = [];
   if (/^'[^']+'|^"[^"]+"/.test(input)) {
     if (/^'[^']+' /.test(input)) {
-      search = input.slice(1, input.indexOf('\'') + 1);
+      search = input.slice(1, input.slice(1).indexOf('\'') + 1);
       input = input.slice(input.slice(1).indexOf('\'') + 2).trim();
     }
     else if (/^"[^"]+" /.test(input)) {
-      search = input.slice(1, input.indexOf('"') + 1);
+      search = input.slice(1, input.slice(1).indexOf('"') + 1);
       input = input.slice(input.slice(1).indexOf('"') + 2).trim();
     }
     else if (input.includes('\'')) {
@@ -245,6 +245,7 @@ async function showUserFileInformation(msg, content) {
     else if (input.includes('"')) {
       search = input.slice(1, input.slice(1).indexOf('"') + 1);
     };
+    console.log(search);
     results = users.filter(user => {
       return user.name.toLowerCase().includes(search.toLowerCase());
     });
@@ -258,7 +259,6 @@ async function showUserFileInformation(msg, content) {
   }
   else if (/^[^1-9][^0-9]*$/.test(input)) {
     search = input;
-    input = '';
     results = users.filter(user => {
       return user.name.toLowerCase().includes(search.toLowerCase());
     });
@@ -290,7 +290,7 @@ async function showUserFileInformation(msg, content) {
     return `**${user.name}** (${groups[user.groupId].name})`;
   })
   .join('\n');
-  await msg.channel.send(`Registered Users on Server #${server}:\n\n${userString}\n*Page ${page}/${pages}*`);
+  await msg.channel.send(`Registered Users on Server #${server}:\n\n${userString}\n\n*Page ${page}/${pages}*`);
   return 'Successfully displayed registered users in a server.';
 };
 
@@ -359,7 +359,7 @@ async function showGroupFileInformation(msg, content) {
       .join(' ')}*\n`;
     };
     await msg.channel.send(`Permissions for **${group[0].name}** (ID: ${group[0].id}) on Server #${server}:\n\n${permString}`);
-    return 'Successfully displayed registered groups in a server.';
+    return 'Successfully displayed groups in a server.';
   };
 };
 

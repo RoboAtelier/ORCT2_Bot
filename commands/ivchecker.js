@@ -45,17 +45,9 @@ async function createNewIntervalChecker(msg, content) {
   }
   
   //Set interval
-  else if (/^s[ao]nic$| s[ao]nic$/.test(input)) {
-    interval = 15000;
-  }
-  else if (/^fast$| fast$/.test(input)) {
-    interval = 60000;
-  }
-  else if (/^slow$| slow$/.test(input)) {
-    interval = 600000;
-  }
-  else if (/^lazy$| lazy$/.test(input)) {
-    interval = 1800000;
+  else if (/ [1-9][0-9]*$/.test(input)) {
+    interval = parseInt(input.slice(input.indexOf(' ') + 1)) * 60000;
+    input = input.slice(0, input.lastIndexOf(' '));
   };
   
   //Stop interval checkers
@@ -109,9 +101,6 @@ async function createNewIntervalChecker(msg, content) {
   else {
     if (/^[1-9][0-9]*$/.test(input)) {
       server = parseInt(input);
-    }
-    else if (/^[1-9][0-9]* /.test(input)) {
-      server = parseInt(input.slice(0, input.indexOf(' ')));
     };
     if (server > 1) {
       const dirCheck = await getServerDir(server);
@@ -125,41 +114,43 @@ async function createNewIntervalChecker(msg, content) {
       return 'Attempted to start interval checker. Already checking for a particular server.';
     };
     serverQueue.push(server);
-    serverChecker = setInterval(async () => {
-      let ips = [];
-      let ipKeys = {};
-      let serverDir = '';
-      for (let i = 0; i < serverQueue.length; i++) {
-        serverDir = serverQueue[i] === 1
-        ? config.openrct2
-        : await getServerDir(serverQueue[i]);
-        const port = await readServerConfig(serverDir, 'default_port');
-        const ip = `${config.defaultip}:${port}`;
-        ipKeys[ip] = serverQueue[i];
-        ips.push(ip);
-      };
-      const check = await getServerStatus(ips);
-      if (check.matches.length !== ips.length) {
-        for (let i = 0; i < ips.length; i++) {
-          if (check.matches.includes(ips[i])) {
-            serverDownCount[serverQueue[i]] = 0;
-          }
-          else {
-            serverDownCount[serverQueue[i]] === undefined
-            ? serverDownCount[serverQueue[i]] = 1
-            : serverDownCount[serverQueue[i]] = serverDownCount[serverQueue[i]] + 1;
-            if (serverDownCount[serverQueue[i]] < 3) {
-              await killServer(serverQueue[i]);
-              await runServer('AUTOSAVE', serverQueue[i], serverDir);
-              await msg.guild.channels.get(config.mainchannel).send(`Hmm... Server #${serverQueue[i]} appears to be down, restarting!`);
+    if (serverChecker === undefined) {
+      serverChecker = setInterval(async () => {
+        let ips = [];
+        let ipKeys = {};
+        let serverDir = '';
+        for (let i = 0; i < serverQueue.length; i++) {
+          serverDir = serverQueue[i] === 1
+          ? config.openrct2
+          : await getServerDir(serverQueue[i]);
+          const port = await readServerConfig(serverDir, 'default_port');
+          const ip = `${config.defaultip}:${port}`;
+          ipKeys[ip] = serverQueue[i];
+          ips.push(ip);
+        };
+        const check = await getServerStatus(ips);
+        if (check.matches.length !== ips.length) {
+          for (let i = 0; i < ips.length; i++) {
+            if (check.matches.includes(ips[i])) {
+              serverDownCount[serverQueue[i]] = 0;
             }
-            else if (serverDownCount[serverQueue[i]] === 3) {
-              await msg.guild.channels.get(config.mainchannel).send(`Server #${serverQueue[i]} is not working properly or the master server is down.`);
+            else {
+              serverDownCount[serverQueue[i]] === undefined
+              ? serverDownCount[serverQueue[i]] = 1
+              : serverDownCount[serverQueue[i]] = serverDownCount[serverQueue[i]] + 1;
+              if (serverDownCount[serverQueue[i]] < 3) {
+                await killServer(serverQueue[i]);
+                await runServer('AUTOSAVE', serverQueue[i], serverDir);
+                await msg.guild.channels.get(config.mainchannel).send(`Hmm... Server #${serverQueue[i]} appears to be down, restarting!`);
+              }
+              else if (serverDownCount[serverQueue[i]] === 3) {
+                await msg.guild.channels.get(config.mainchannel).send(`Server #${serverQueue[i]} is not working properly or the master server is down.`);
+              };
             };
           };
         };
-      };
-    }, interval);
+      }, 300000);
+    };
     await msg.channel.send(`Running interval checker for Server #${server}.`);
     return 'Successfully created new interval checker for a server.';
   };
