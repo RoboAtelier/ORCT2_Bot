@@ -216,7 +216,7 @@ async function startScenarioVote(msg, content) {
             scenarioVote.session = undefined;
             await killServer(1);
             await runServer(scenario, 1);
-            await msg.guild.channels.get(config.mainchannel).send(`Starting up **${scenario.substring(0, top[0].length - 4)}** on Server #${server}.`);
+            await msg.guild.channels.get(config.mainchannel).send(`Starting up **${scenario.substring(0, scenario.length - 4)}** on Server #${server}.`);
           }, 10000);
         }
         else {

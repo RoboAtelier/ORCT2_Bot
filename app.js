@@ -204,7 +204,7 @@ bot.on('message', async msg => {
       }
       catch(err) {
         console.log(err);
-        await logger.writeLog(err, `${config.errlogs}/cmd`);
+        await logger.writeLog(err, `${config.errlogs}/${cmd}`);
       };
     };
   }

@@ -316,9 +316,9 @@ async function createFinalScenarioDownload(msg, content) {
         scrnProcess.on('exit', async (code, signal) => {
           await loadMsg.delete();
           await msg.guild.channels.get(config.mapdlchannel).send(
-            serverMap === undefined
+            serverMap !== undefined
             ? `Finalized Map of **${serverMap}**`
-            : `Finalized Map of *{UNNAMED_MAP_PHRASES[Math.floor(Math.random()*UNNAMED_MAP_PHRASES.length)]}*.`,
+            : `Finalized Map of *${UNNAMED_MAP_PHRASES[Math.floor(Math.random()*UNNAMED_MAP_PHRASES.length)]}*.`,
             {
               files: [{
                 attachment: './final.png',
