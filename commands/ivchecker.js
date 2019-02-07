@@ -25,11 +25,14 @@ let serverDownCount = {};
  * @returns {string} Log entry
  */
 async function createNewIntervalChecker(msg, content) {
-  let input = content;
-  let server = 1;
-  let option = '';
   
-  //Get Option
+  //Defaults and parameters
+  let input = content;
+  let option = '';
+  let server = 1;
+  let interval = 300000;
+  
+  //Get option
   if (input.startsWith('-')) {
     if (input.includes(' ')) {
       option = input.slice(0, input.indexOf(' '));
@@ -39,14 +42,32 @@ async function createNewIntervalChecker(msg, content) {
       option = input;
       input = '';
     };
+  }
+  
+  //Set interval
+  else if (/^s[ao]nic$| s[ao]nic$/.test(input)) {
+    interval = 15000;
+  }
+  else if (/^fast$| fast$/.test(input)) {
+    interval = 60000;
+  }
+  else if (/^slow$| slow$/.test(input)) {
+    interval = 600000;
+  }
+  else if (/^lazy$| lazy$/.test(input)) {
+    interval = 1800000;
   };
   
+  //Stop interval checkers
   if (option.includes('s')) {
     return await stopIntervalChecker(msg, input, option);
   }
+  
+  //Start dev checker
   else if (option.includes('d') || input.startsWith('dev')) {
     if (devChecker !== undefined) {
-      clearInterval(devChecker);
+      await msg.channel.send(`I'm already checking for develop builds.`);
+      return 'Attempted to start interval checker. Already checking for develop builds.';
     };
     devChecker = setInterval(async () => {
       const curHash = await getBuildHash('dev', config.devuri);
@@ -56,17 +77,20 @@ async function createNewIntervalChecker(msg, content) {
         const details = await getBuildData('dev', config.devuri);
         await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW OPENRCT2 BUILD**!\n\n${details}\n${config.devuri}`);
       };
-    }, 300000);
+    }, interval);
     await msg.channel.send('Running interval checker for develop builds.');
     return 'Successfully created new interval checker for develop builds.';
   }
+  
+  //Start launcher checker
   else if (
     option.includes('l')
     || input === 'lnc'
     || input.startsWith('lau')
   ) {
     if (lncChecker !== undefined) {
-      clearInterval(lncChecker);
+      await msg.channel.send(`I'm already checking for launcher builds.`);
+      return 'Attempted to start interval checker. Already checking for launcher builds.';
     };
     lncChecker = setInterval(async () => {
       const curHash = await getBuildHash('lnc', config.lncuri);
@@ -76,13 +100,18 @@ async function createNewIntervalChecker(msg, content) {
         const details = await getBuildData('lnc', config.lncuri);
         await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW LAUNCHER BUILD**!\n\n${details}\n${config.lncuri}`);
       };
-    }, 300000);
+    }, interval);
     await msg.channel.send('Running interval checker for launcher builds.');
     return 'Successfully created new interval checker for launcher builds.';
   }
+  
+  //Start server checker
   else {
     if (/^[1-9][0-9]*$/.test(input)) {
       server = parseInt(input);
+    }
+    else if (/^[1-9][0-9]* /.test(input)) {
+      server = parseInt(input.slice(0, input.indexOf(' ')));
     };
     if (server > 1) {
       const dirCheck = await getServerDir(server);
@@ -92,15 +121,18 @@ async function createNewIntervalChecker(msg, content) {
       };
     };
     if (serverQueue.includes(server)) {
-      await msg.channel.send(`I'm already checking for ${server}.`);
+      await msg.channel.send(`I'm already checking for Server #${server}.`);
       return 'Attempted to start interval checker. Already checking for a particular server.';
     };
     serverQueue.push(server);
     serverChecker = setInterval(async () => {
       let ips = [];
       let ipKeys = {};
+      let serverDir = '';
       for (let i = 0; i < serverQueue.length; i++) {
-        const serverDir = await getServerDir(serverQueue[i]);
+        serverDir = serverQueue[i] === 1
+        ? config.openrct2
+        : await getServerDir(serverQueue[i]);
         const port = await readServerConfig(serverDir, 'default_port');
         const ip = `${config.defaultip}:${port}`;
         ipKeys[ip] = serverQueue[i];
@@ -127,7 +159,7 @@ async function createNewIntervalChecker(msg, content) {
           };
         };
       };
-    }, 300000);
+    }, interval);
     await msg.channel.send(`Running interval checker for Server #${server}.`);
     return 'Successfully created new interval checker for a server.';
   };

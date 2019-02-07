@@ -233,30 +233,30 @@ async function showUserFileInformation(msg, content) {
   if (/^'[^']+'|^"[^"]+"/.test(input)) {
     if (/^'[^']+' /.test(input)) {
       search = input.slice(1, input.indexOf('\'') + 1);
-      input = input.slice(input.substring(1).indexOf('\'') + 1).trim();
+      input = input.slice(input.slice(1).indexOf('\'') + 2).trim();
     }
     else if (/^"[^"]+" /.test(input)) {
       search = input.slice(1, input.indexOf('"') + 1);
-      input = input.slice(input.substring(1).indexOf('"') + 1).trim();
+      input = input.slice(input.slice(1).indexOf('"') + 2).trim();
     }
     else if (input.includes('\'')) {
-      search = input.slice(1, input.substring(1).indexOf('\'') + 1);
+      search = input.slice(1, input.slice(1).indexOf('\'') + 1);
     }
     else if (input.includes('"')) {
-      search = input.slice(1, input.substring(1).indexOf('"') + 1);
+      search = input.slice(1, input.slice(1).indexOf('"') + 1);
     };
     results = users.filter(user => {
       return user.name.toLowerCase().includes(search.toLowerCase());
     });
   }
-  else if (input.includes(' ')) {
-    search = input.slice(0, input.indexOf(' '));
-    input = input.slice(input.substring(1).indexOf(' ') + 1).trim();
+  else if (/[0-9][1-9]*$/.test(input)) {
+    search = input.slice(0, input.lastIndexOf(' '));
+    input = input.slice(input.lastIndexOf(' ') + 1);
     results = users.filter(user => {
       return user.name.toLowerCase().includes(search.toLowerCase());
     });
   }
-  else if (/^[^1-9][^0-9]*/.test(input)) {
+  else if (/^[^1-9][^0-9]*$/.test(input)) {
     search = input;
     input = '';
     results = users.filter(user => {
@@ -340,7 +340,7 @@ async function showGroupFileInformation(msg, content) {
   }
   else {
     if (/^'[^']+'$|^"[^"]+"$/.test(input)) {
-      input = input.substring(1, input.length - 1);
+      input = input.slice(1, input.length - 1);
     };
     const group = groupData.groups.filter(group => {
       return group.name.toLowerCase().includes(input);

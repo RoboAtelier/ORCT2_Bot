@@ -51,12 +51,12 @@ async function showScenarios(msg, content) {
     };
     results = await getScenarios(scenarioDir, search);
   }
-  else if (input.includes(' ')) {
-    search = input.slice(0, input.indexOf(' '));
-    input = input.slice(input.indexOf(' ')).trim();
+  else if (/[0-9][1-9]*$/.test(input)) {
+    search = input.slice(0, input.lastIndexOf(' '));
+    input = input.slice(input.lastIndexOf(' ') + 1);
     results = await getScenarios(scenarioDir, search);
   }
-  else if (!/^[0-9][1-9]*$/.test(input)) {
+  else if (/^[^1-9][^0-9]*$/.test(input)) {
     search = input;
     results = await getScenarios(scenarioDir, search);
   }
@@ -106,8 +106,6 @@ async function showScenarios(msg, content) {
  * @returns {string} Log entry.
  */
 async function moveScenario(msg, content, action) {
-  let input = content;
-  let search = '';
   let startDir = '';
   let endDir = '';
   if (action === 'discard') {
@@ -118,42 +116,18 @@ async function moveScenario(msg, content, action) {
     startDir = config.discard;
     endDir = config.scenarios;
   };
-  if (input.length === 0) {
+  if (content.length === 0) {
     await msg.channel.send('No search string given.');
     return 'Attempted to move scenarios. No input was given.';
   };
 
-  let results = [];
-  if (/^'[^']+'|^"[^"]+"/.test(input)) {
-    if (/^'[^']+' /.test(input)) {
-      search = input.slice(0, input.slice(1).indexOf('\'') + 1);
-      input = input.slice(input.slice(1).indexOf('\'') + 2).trim();
-    }
-    else if (/^"[^"]+" /.test(input)) {
-      search = input.slice(0, input.slice(1).indexOf('"') + 1);
-      input = input.slice(input.slice(1).indexOf('"') + 2).trim();
-    }
-    else {
-      search = input;
-    };
-    results = await getScenarios(startDir, search);
-  }
-  else if (input.includes(' ')) {
-    search = input.slice(0, input.indexOf(' '));
-    input = input.slice(input.indexOf(' ')).trim();
-    results = await getScenarios(startDir, search);
-  }
-  else {
-    search = input;
-    results = await getScenarios(startDir, search);
-  };
-    
+  const results = await getScenarios(startDir, content);
   if (results.length > 1) {
-    await msg.channel.send(`'${search}' returned multiple results:\n\n*${results.join('*\n*')}*\n\nPlease enter a more exact name of the scenario.`);
+    await msg.channel.send(`'${content}' returned multiple results:\n\n*${results.join('*\n*')}*\n\nPlease enter a more exact name of the scenario.`);
     return 'Attempted to move scenarios. Input returned multiple results.';
   }
   else if (results.length === 0) {
-    await msg.channel.send(`No scenarios found with '${search}'.`);
+    await msg.channel.send(`No scenarios found with '${content}'.`);
     return 'Attempted to move scenarios. No scenarios found with given input.';
   }
   renameSync(
