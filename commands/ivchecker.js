@@ -70,7 +70,9 @@ async function createNewIntervalChecker(msg, content) {
         await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW OPENRCT2 BUILD**!\n\n${details}\n${config.devuri}`);
       };
     }, interval);
-    await msg.channel.send('Running interval checker for develop builds.');
+    interval === 60000
+    ? await msg.channel.send('Checking for develop builds every minute.')
+    : await msg.channel.send(`Checking for develop builds every ${interval/60000} minutes.`);
     return 'Successfully created new interval checker for develop builds.';
   }
   
@@ -93,7 +95,9 @@ async function createNewIntervalChecker(msg, content) {
         await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW LAUNCHER BUILD**!\n\n${details}\n${config.lncuri}`);
       };
     }, interval);
-    await msg.channel.send('Running interval checker for launcher builds.');
+    interval === 60000
+    ? await msg.channel.send('Checking for launcher builds every minute.')
+    : await msg.channel.send(`Checking for launcher builds every ${interval/60000} minutes.`);
     return 'Successfully created new interval checker for launcher builds.';
   }
   
@@ -149,9 +153,9 @@ async function createNewIntervalChecker(msg, content) {
             };
           };
         };
-      }, 300000);
+      }, interval);
     };
-    await msg.channel.send(`Running interval checker for Server #${server}.`);
+    await msg.channel.send(`I'm now monitoring the status of Server #${server}.`);
     return 'Successfully created new interval checker for a server.';
   };
 };
