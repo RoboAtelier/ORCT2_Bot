@@ -92,36 +92,37 @@ async function createNewIntervalChecker(msg, content) {
       };
     };
     if (serverQueue.includes(server)) {
-      clearInterval(serverChecker);
+      await msg.channel.send(`I'm already checking for ${server}.`);
+      return 'Attempted to start interval checker. Already checking for a particular server.';
     };
     serverQueue.push(server);
     serverChecker = setInterval(async () => {
       let ips = [];
       let ipKeys = {};
       for (let i = 0; i < serverQueue.length; i++) {
-        const serverDir = await getServerDir(server);
+        const serverDir = await getServerDir(serverQueue[i]);
         const port = await readServerConfig(serverDir, 'default_port');
         const ip = `${config.defaultip}:${port}`;
-        ipKeys[ip] = server;
+        ipKeys[ip] = serverQueue[i];
         ips.push(ip);
       };
       const check = await getServerStatus(ips);
       if (check.matches.length !== ips.length) {
         for (let i = 0; i < ips.length; i++) {
           if (check.matches.includes(ips[i])) {
-            serverDownCount[server] = 0;
+            serverDownCount[serverQueue[i]] = 0;
           }
           else {
-            serverDownCount[server] === undefined
-            ? serverDownCount[server] = 1
-            : serverDownCount[server] = serverDownCount[server] + 1;
-            if (serverDownCount[server] < 3) {
-              await killServer(server);
-              await runServer('AUTOSAVE', server, serverDir);
-              await msg.guild.channels.get(config.mainchannel).send(`Hmm... Server #${server} appears to be down, restarting!`);
+            serverDownCount[serverQueue[i]] === undefined
+            ? serverDownCount[serverQueue[i]] = 1
+            : serverDownCount[serverQueue[i]] = serverDownCount[serverQueue[i]] + 1;
+            if (serverDownCount[serverQueue[i]] < 3) {
+              await killServer(serverQueue[i]);
+              await runServer('AUTOSAVE', serverQueue[i], serverDir);
+              await msg.guild.channels.get(config.mainchannel).send(`Hmm... Server #${serverQueue[i]} appears to be down, restarting!`);
             }
-            else if (serverDownCount[server] === 3) {
-              await msg.guild.channels.get(config.mainchannel).send(`Server #${server} is not working properly or the master server is down.`);
+            else if (serverDownCount[serverQueue[i]] === 3) {
+              await msg.guild.channels.get(config.mainchannel).send(`Server #${serverQueue[i]} is not working properly or the master server is down.`);
             };
           };
         };
