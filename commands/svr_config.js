@@ -250,7 +250,7 @@ async function showUserFileInformation(msg, content) {
       return user.name.toLowerCase().includes(search.toLowerCase());
     });
   }
-  else if (/[0-9][1-9]*$/.test(input)) {
+  else if (/[1-9][0-9]*$/.test(input)) {
     search = input.slice(0, input.lastIndexOf(' '));
     input = input.slice(input.lastIndexOf(' ') + 1);
     results = users.filter(user => {
