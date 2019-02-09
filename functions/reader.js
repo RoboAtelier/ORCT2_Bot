@@ -57,7 +57,7 @@ async function getScenarios(path = config.scenarios, search = '') {
       exact = search.slice(1, search.slice(1).indexOf('"') + 1);
     };
     scenarios = scenarios.filter(scenario => {
-      return scenario.slice(0, scenario.length - 4).toLowerCase() === exact.toLowerCase();
+      return scenario.toLowerCase() === exact;
     });
   }
   else if (search.length > 0) {
