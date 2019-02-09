@@ -51,7 +51,7 @@ async function showScenarios(msg, content) {
     };
     results = await getScenarios(scenarioDir, search);
   }
-  else if (/[1-9][0-9]*$/.test(input)) {
+  else if (/ [1-9][0-9]*$/.test(input)) {
     search = input.slice(0, input.lastIndexOf(' '));
     input = input.slice(input.lastIndexOf(' ') + 1);
     results = await getScenarios(scenarioDir, search);
