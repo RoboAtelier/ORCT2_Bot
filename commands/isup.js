@@ -18,8 +18,8 @@ async function checkServerIsOnline(msg, content) {
   let input = content;
   let scenarioDir = config.scenarios;
   
-  //Defaults: GTW IPv4s
-  let inputs = [`${config.defaultip}:4801`, `${config.defaultip}:4802`];
+  //Defaults: GTW IPv4
+  let inputs = [`${config.defaultip}:${config.defaultport}`];
   
   //Get Option
   if (input.startsWith('-a') || input.startsWith('--all')) {
@@ -51,16 +51,10 @@ async function checkServerIsOnline(msg, content) {
       const fails = inputs.filter(input => results.matches.indexOf(input) === -1);
       for (let i = 0; i < fails.length; i++) {
         if (
-          inputs.length === 2
-          && inputs.includes(`${config.defaultip}:4801`)
-          && inputs.includes(`${config.defaultip}:4802`)
+          inputs.length === 1
+          && fails.includes(`${config.defaultip}:${config.defaultport}`)
         ) {
-          if (fails[i] === `${config.defaultip}:4801`) {
-            status = `${status}*(GTW's Nostalgia Server)* is not available.\n`;
-          }
-          else if (fails[i] === `${config.defaultip}:4802`) {
-            status = `${status}*(GTW's Nostalgia Server) #2 (I.C.E.)* is not available.\n`;
-          };
+          status = `${status}*${config.servername}* is not available.\n`;
         }
         else {
           status = `${status}Could not find servers with '*${fails[i]}*'\n`;
@@ -91,10 +85,9 @@ async function checkServerIsOnline(msg, content) {
     return 'Successfully searched and posted server status.';
   }
   else {
-    status = inputs.length === 2
-    && inputs.includes(`${config.defaultip}:4801`)
-    && inputs.includes(`${config.defaultip}:4802`)
-    ? `*(GTW's Nostalgia Server)* is not available.\n*(GTW's Nostalgia Server) #2 (I.C.E.)* is not available.\n`
+    status = inputs.length === 1
+    && inputs.includes(`${config.defaultip}:${config.defaultport}`)
+    ? `*${config.servername}* is not available.\n`
     : `Could not find servers with '*${inputs.join(' ')}*'\n`;
     await msg.channel.send(status);
     return 'Attempted to display server status. No servers found with given input(s).';

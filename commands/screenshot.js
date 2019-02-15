@@ -1,8 +1,8 @@
 /** Command module that takes scenario screenshots
  * @module screenshot
- * @requires fs, child_process
+ * @requires child_process, fs, install, orct2server, reader, config
  */
-const { spawn, exec } = require('child_process');
+const { spawn } = require('child_process');
 const {
   copyFileSync,
   readFileSync,
@@ -10,13 +10,14 @@ const {
   renameSync,
   statSync,
 } = require('fs');
+const { checkInstallation } = require('./install');
+const { getScenario } = require('../functions/orct2server');
 const {
   getLatestAutosave,
   getScenarios,
   getServerDir,
   getPreview,
 } = require('../functions/reader');
-const { getScenario } = require('../functions/orct2server');
 const { config } = require('../config');
 
 const UNNAMED_MAP_PHRASES = [
@@ -34,11 +35,11 @@ const UNNAMED_MAP_PHRASES = [
 ];
 let loading = false;
 let finalizing = false;
+let confirming = false;
 
 /**
  * Creates a new screenshot engine process.
  * 
- * @async
  * @function createScreenshotProcess
  * @param {string} dir - Directory of scenario
  * @param {string} dirout - Output directory
@@ -75,7 +76,6 @@ async function createScreenshotProcess(dir, dirout, scenario, pngout = '') {
 /**
  * Creates a new preview screenshot for an OpenRCT2 scenario.
  * 
- * @async
  * @function createScenarioPreviewScreenshot
  * @param {Message} msg - Discord message object
  * @param {string} content - Message contents
@@ -83,20 +83,26 @@ async function createScreenshotProcess(dir, dirout, scenario, pngout = '') {
  */
 async function createPreviewScreenshot(msg, content) {
   
+  //Prevent Screenshots during Installation
+  if (checkInstallation()) {
+    await msg.channel.send('Cannot create screenshot at this time. Installing new OpenRCT2 build.');
+    return 'Attempted to preview a scenario. Build installation in progress.';
+  }
+  
   //Only run with a single screenshot process at a time
-  if (loading === false) {
+  else if (loading === false) {
     loading = true;
     
     //Find specific scenario
     const scenarios = await getScenarios(config.scenarios, content);
     if (scenarios.length > 1) {
-      await msg.channel.send(`'${content}' returned multiple scenarios:\n\n${scenarios.splice(0, 20).join('\n')}\n\nPlease enter a more exact name.`);
       loading = false;
+      await msg.channel.send(`'${content}' returned multiple scenarios:\n\n${scenarios.splice(0, 20).join('\n')}\n\nPlease enter a more exact name.`);
       return 'Attempted to preview a scenario. Search input returned multiple scenarios.';
     }
     else if (scenarios.length === 0) {
-      await msg.channel.send(`No scenario found with '${content}'.`);
       loading = false;
+      await msg.channel.send(`No scenario found with '${content}'.`);
       return 'Attempted to preview a scenario. Search input did not return a scenario.';
     };
     
@@ -104,6 +110,7 @@ async function createPreviewScreenshot(msg, content) {
     const loadMsg = await msg.channel.send('Loading screenshot...');
     const preview = await getPreview(scenarios[0]);
     if (preview.length > 0) {
+      loading = false;
       await loadMsg.delete();
       await msg.channel.send(`**${preview.slice(0, preview.length - 4)}**`, {
         files: [{
@@ -111,7 +118,6 @@ async function createPreviewScreenshot(msg, content) {
           name: 'preview.png',
         }]
       });
-      loading = false;
       return 'Successfully loaded preview image of scenario.';
     }
     
@@ -128,7 +134,6 @@ async function createPreviewScreenshot(msg, content) {
       //Wait for screenshot engine to finish
       const success = await new Promise((resolve, reject) => {
         scrnProcess.on('exit', async (code, signal) => {
-          await loadMsg.delete();
           await msg.channel.send(
             `**${scenarios[0].slice(0, scenarios[0].length - 4)}**`,
             {
@@ -138,15 +143,18 @@ async function createPreviewScreenshot(msg, content) {
               }]
             }
           );
+          await loadMsg.delete();
           resolve(true);
-        });
-        scrnProcess.on('error', async (err) => {
+        })
+        .on('error', err => {
           reject(err);
         });
         timeout = setTimeout(async () => {
           await loadMsg.edit(`Screenshot took too long to load.`);
           resolve(false);
         }, 10000);
+      }).catch(err => {
+        throw err;
       });
       
       //Cleanup and post results
@@ -167,7 +175,6 @@ async function createPreviewScreenshot(msg, content) {
  * Creates a new screenshot for the latest running scenario in an OpenRCT2 server.
  * May not always show the most current progress, depending on autosave frequency.
  * 
- * @async
  * @function createServerScenarioScreenshot
  * @param {Message} msg - Discord message object
  * @param {string} content - Message contents
@@ -175,8 +182,14 @@ async function createPreviewScreenshot(msg, content) {
  */
 async function createServerScreenshot(msg, content) {
   
+  //Prevent Screenshots during Installation
+  if (checkInstallation()) {
+    await msg.channel.send('Cannot create screenshot at this time. Installing new OpenRCT2 build.');
+    return 'Attempted to screenshot server scenario. Build installation in progress.';
+  }
+  
   //Only run with a single screenshot process at a time
-  if (loading === false) {
+  else if (loading === false) {
     loading = true;
     
     //Get desired server directory
@@ -188,8 +201,8 @@ async function createServerScreenshot(msg, content) {
     if (server > 1) {
       serverDir = await getServerDir(server);
       if (serverDir.length === 0) {
-        await msg.channel.send(`Server #${server} folder doesn't exist.`);
         loading = false;
+        await msg.channel.send(`Server #${server} folder doesn't exist.`);
         return 'Attempted to screenshot server scenario. Selected server directory does not exist.';
       };
     };
@@ -209,7 +222,6 @@ async function createServerScreenshot(msg, content) {
       //Wait for screenshot engine to finish
       const success = await new Promise((resolve, reject) => {
         scrnProcess.on('exit', async (code, signal) => {
-          await loadMsg.delete();
           await msg.channel.send(
             `**Server #${server} Latest Progress** *Note: may not be current*`,
             {
@@ -219,15 +231,18 @@ async function createServerScreenshot(msg, content) {
               }]
             }
           );
+          await loadMsg.delete();
           resolve(true);
-        });
-        scrnProcess.on('error', async (err) => {
+        })
+        .on('error', err => {
           reject(err);
         });
         timeout = setTimeout(async () => {
           await loadMsg.edit(`Screenshot took too long to load.`);
           resolve(false);
         }, 10000);
+      }).catch(err => {
+        throw err;
       });
       
       //Cleanup and post results
@@ -238,8 +253,8 @@ async function createServerScreenshot(msg, content) {
       : 'Attempted to screenshot server scenario. Screenshot took too long to load.';
     }
     else {
-      await loadMsg.edit(`There are no autosaves for Server #${server}!`);
       loading = false;
+      await loadMsg.edit(`There are no autosaves for Server #${server}!`);
       return 'Attempted to screenshot server scenario. No autosaves found.';
     };
   }
@@ -249,11 +264,26 @@ async function createServerScreenshot(msg, content) {
   };
 };
 
+/**
+ * Creates a finalizing screenshot of the most recent autosave
+ * of a OpenRCT2 server and posts a final save in the map downloads channel.
+ * 
+ * @function createServerScenarioScreenshot
+ * @param {Message} msg - Discord message object
+ * @param {string} content - Message contents
+ * @returns {Promise<string>} Log entry
+ */
 async function createFinalScenarioDownload(msg, content) {
-  let input = content;
+  
+  //Prevent Finalizing during Installation
+  if (checkInstallation()) {
+    await msg.channel.send('Cannot finalize at this time. Installing new OpenRCT2 build.');
+    return 'Attempted to create final scenario post. Build installation in progress.';
+  }
   
   //Only run with a single screenshot process at a time
   if (finalizing === false) {
+    let input = content;
     finalizing = true;
     
     //Get desired server directory
@@ -270,8 +300,8 @@ async function createFinalScenarioDownload(msg, content) {
     if (server > 1) {
       serverDir = await getServerDir(server);
       if (serverDir.length === 0) {
+        finalizing = false;
         await msg.channel.send(`Server #${server} folder doesn't exist.`);
-        loading = false;
         return 'Attempted to create final scenario post. Selected server directory does not exist.';
       };
     };
@@ -287,6 +317,15 @@ async function createFinalScenarioDownload(msg, content) {
         ? 'AUTOSAVE'
         : serverMap;
       };
+      if (saveName === 'AUTOSAVE' && confirming === false) {
+        confirming = true;
+        await msg.channel.send('Could not get server map name. Type in `,finalize (map name)` to resolve this, or re-enter `,finalize` to post with just AUTOSAVE.');
+        setTimeout(() => {
+          confirming = false;
+        }, 15000);
+        return 'Attempted to create final scenario post. Sent confirmation prompt.';
+      }
+      confirming = false;
       const dateOptions = {
         year: 'numeric',
         month: 'short',
@@ -297,6 +336,13 @@ async function createFinalScenarioDownload(msg, content) {
       .split('/')
       .join('-')
       .replace(',', '');
+      
+      //Handle duplicate saves
+      const similarFinals = readdirSync(config.finals)
+      .filter(save => save.startsWith(`${saveName}_FINAL_${curDate}`));
+      if (similarFinals.length > 0) {
+        curDate = `${curDate}(${similarFinals.length + 1})`
+      };
       copyFileSync(
         `${serverDir}/save/autosave/${autosave}`,
         `${config.finals}/${saveName}_FINAL_${curDate}.sv6`,
@@ -314,10 +360,9 @@ async function createFinalScenarioDownload(msg, content) {
       //Wait for screenshot engine to finish
       const success = await new Promise((resolve, reject) => {
         scrnProcess.on('exit', async (code, signal) => {
-          await loadMsg.delete();
           await msg.guild.channels.get(config.mapdlchannel).send(
-            serverMap !== undefined
-            ? `Finalized Map of **${serverMap}**`
+            saveName !== 'AUTOSAVE'
+            ? `Finalized Map of **${saveName}**`
             : `Finalized Map of *${UNNAMED_MAP_PHRASES[Math.floor(Math.random()*UNNAMED_MAP_PHRASES.length)]}*.`,
             {
               files: [{
@@ -326,15 +371,18 @@ async function createFinalScenarioDownload(msg, content) {
               }]
             }
           );
+          await loadMsg.delete();
           resolve(true);
-        });
-        scrnProcess.on('error', async (err) => {
+        })
+        .on('error', err => {
           reject(err);
         });
         timeout = setTimeout(async () => {
           await loadMsg.edit(`Screenshot took too long to load.`);
           resolve(false);
         }, 10000);
+      }).catch(err => {
+        throw err;
       });
       
       //Cleanup and post results
@@ -347,6 +395,7 @@ async function createFinalScenarioDownload(msg, content) {
             name: `${saveName}_FINAL_${curDate}.sv6`,
           }]
         });
+        await msg.channel.send('Scenario finalizing successful!');
         return 'Successfully posted finalized autosave of current server scenario.';
       };
       return 'Attempted to create final scenario post. Screenshot took too long to load.';

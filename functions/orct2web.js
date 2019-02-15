@@ -28,13 +28,13 @@ async function getOpenRCT2BuildPageDetails(page, uri) {
   //Latest OpenRCT2 Build Details
   if (page === 'dev') {
     const $ = await rp(options);
-    $('ul').first().children().each((i, ielem) => {
+    $('ul').first().children().each((i, el) => {
       if (i === 1) {
-        details = `${details}Git Hash: **${$('a', ielem).text()}**\n`;
+        details = `${details}Git Hash: **${$('a', el).text()}**\n`;
       }
       else if (i === 2) {
-        details = `Was released **${$('span', ielem).first().text()} ago**\n${details}`;
-        details = `Release Date: **${$('span', ielem).next().text()}**\n${details}`;
+        details = `Was released **${$('span', el).first().text()} ago**\n${details}`;
+        details = `Release Date: **${$('span', el).next().text()}**\n${details}`;
       };
     });
     details = `*${$('h1').first().text()}*\n\n${details}`;
@@ -46,17 +46,17 @@ async function getOpenRCT2BuildPageDetails(page, uri) {
     details = `${details}*Latest OpenRCT2 launcher download*\n\n`
     const maindiv = $('.release-entry').first();
     const header = $('.release-header', maindiv).first();
-    $('p', header).first().children().each((i, ielem) => {
+    $('p', header).first().children().each((i, el) => {
       if (i === 1) {
-        details = `${details}Creator: **${$(ielem).text()}**\n`;
+        details = `${details}Creator: **${$(el).text()}**\n`;
       }
       else if (i === 2) {
-        details = `${details}Release Date: **${$(ielem).text()}**\n`;
+        details = `${details}Release Date: **${$(el).text()}**\n`;
       }
       else if (i === 3) {
         details = `${details}Version: **${$('a', header).first().text()}**\n`;
         details = `${details}Git Hash: **${$('code', maindiv).first().text()}**\n`;
-        details = `${details}${$(ielem).text().trim()} since last release\n`;
+        details = `${details}${$(el).text().trim()} since last release\n`;
       };
     });
   };
@@ -93,6 +93,22 @@ async function getOpenRCT2BuildHash(build, uri) {
     const $ = await rp(options);
     return $('code').first().text();
   };
+};
+
+async function getOpenRCT2DownloadFileLink(type, uri) {
+  
+  //Transform Data for Cheerio
+  const options = {
+    uri,
+    transform: function (body) {
+      return cheerio.load(body, { decodeEntities: false });
+    },
+  };
+  
+  const $ = await rp(options);
+  return $('main').find('a', 'table').filter((i, el) => {
+    return $(el).attr('href').includes(type);
+  }).attr('href');
 };
 
 /**
@@ -160,5 +176,6 @@ async function getServerStatus(inputs) {
 module.exports = {
   getBuildHash: getOpenRCT2BuildHash,
   getBuildData: getOpenRCT2BuildPageDetails,
+  getDownloadLink: getOpenRCT2DownloadFileLink,
   getServerStatus,
 };

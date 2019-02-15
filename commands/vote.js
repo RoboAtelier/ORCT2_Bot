@@ -3,8 +3,9 @@
  * @requires fs
  */
 const { readdirSync } = require('fs');
-const { config } = require('../config');
+const { checkInstallation } = require('./install');
 const { runServer, killServer } = require('../functions/orct2server');
+const { config } = require('../config');
 
 const voteEmojis = [
   '\u0031\u20E3',
@@ -64,6 +65,13 @@ async function cancelScenarioVote(msg) {
  */
 async function startScenarioVote(msg, content) {
   try {
+    
+    //Prevent Scenario Voting during Installation
+    if (checkInstallation()) {
+      await msg.channel.send('Cannot run vote at this time. Installing new OpenRCT2 build.');
+      return 'Attempted to start a scenario vote. Build installation in progress.';
+    };
+    
     if (!(
       msg.member.roles.has(config.mod)
       || msg.member.roles.has(config.admin)
@@ -204,10 +212,10 @@ async function startScenarioVote(msg, content) {
           scenario = voteChoices[voteEmojis.indexOf(reaction.emoji.name)];
           const voteCount = highest - 1 === 1
           ? '1 vote'
-          : `${highest} votes`;
+          : `${highest - 1} votes`;
           top.length === 1
           ? await voteMsg.edit(`${voteMsg.content}\n\nSelected scenario: **${scenario.substring(0, scenario.length - 4)}** (${voteCount})\n\nMap change in 10 seconds.`)
-          : await voteMsg.edit(`${voteMsg.content}\n\nThere was a tie! Randomly picked: **${scenario.substring(0, scenario.length - 4)}** (${highest} votes)\n\nMap change in 10 seconds.`);
+          : await voteMsg.edit(`${voteMsg.content}\n\nThere was a tie! Randomly picked: **${scenario.substring(0, scenario.length - 4)}** (${voteCount} votes)\n\nMap change in 10 seconds.`);
         };
         if (scenario.length > 0) {
           scenarioVote.session = setTimeout(async () => {

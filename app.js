@@ -53,14 +53,26 @@ bot.on('message', async msg => {
           
           //Show Server Configuration
           if (['config', 'conf'].includes(cmd)) {
-            cmd = 'svr_config';
-            cmdLog = await cmds.svr_config.showConfig(msg, content);
+            cmd = 'svrconfig';
+            cmdLog = await cmds.svrconfig.showConfig(msg, content);
           }
           
           //Edit Server Configuration
           else if (['editconfig', 'editconf', 'chconf'].includes(cmd)) {
-            cmd = 'svr_config';
-            cmdLog = await cmds.svr_config.editConfig(msg, content);
+            cmd = 'svrconfig';
+            cmdLog = await cmds.svrconfig.editConfig(msg, content);
+          }
+          
+          //Update to Latest Build
+          else if (['update', 'upd'].includes(cmd)) {
+            cmd = 'install';
+            cmdLog = await cmds.install.installOpenRCT2(msg, `-l ${content}`);
+          }
+          
+          //Install OpenRCT2 Build
+          else if (['install', 'ins'].includes(cmd)) {
+            cmd = 'install';
+            cmdLog = await cmds.install.installOpenRCT2(msg, content);
           }
           
           //Create Autochecker
@@ -81,32 +93,32 @@ bot.on('message', async msg => {
           
           //Run OpenRCT2 Scenario on Server
           if (['changemap', 'chmap', 'run'].includes(cmd)) {
-            cmd = 'svr_ops';
-            cmdLog = await cmds.svr_ops.run(msg, content);
+            cmd = 'svrops';
+            cmdLog = await cmds.svrops.run(msg, content);
           }
           
           //Stop OpenRCT2 Server
           else if (['kill', 'stop'].includes(cmd)) {
-            cmd = 'svr_ops';
-            cmdLog = await cmds.svr_ops.stop(msg, content);
+            cmd = 'svrops';
+            cmdLog = await cmds.svrops.stop(msg, content);
           }
           
           //Restart OpenRCT2 Server
-          else if (['restart'].includes(cmd)) {
-            cmd = 'svr_ops';
-            cmdLog = await cmds.svr_ops.run(msg, `-a ${content}`);
+          else if (['test'].includes(cmd)) {
+            cmd = 'svrops';
+            cmdLog = await cmds.svrops.run(msg, `-a ${content}`);
           }
           
           //Show Registered Users
           else if (['users', 'usrs'].includes(cmd)) {
-            cmd = 'svr_config';
-            cmdLog = await cmds.svr_config.showUsers(msg, content);
+            cmd = 'svrconfig';
+            cmdLog = await cmds.svrconfig.showUsers(msg, content);
           }
           
           //Show Server Groups
           else if (['groups', 'grps'].includes(cmd)) {
-            cmd = 'svr_config';
-            cmdLog = await cmds.svr_config.showGroups(msg, content);
+            cmd = 'svrconfig';
+            cmdLog = await cmds.svrconfig.showGroups(msg, content);
           }
           
           //Finalize Server Scenario
@@ -130,11 +142,13 @@ bot.on('message', async msg => {
         
         //Trusted Level Commands
         if (
-          (permLvl > 1
-          || (
-            permLvl === 1
-            && config.botchannels.includes(msg.channel.name)
-          ))
+          (
+            permLvl > 1
+            || (
+              permLvl === 1
+              && config.botchannels.includes(msg.channel.name)
+            )
+          )
           && cmdLog === ''
         ) {
           
@@ -164,7 +178,13 @@ bot.on('message', async msg => {
         };
         
         //Public Commands
-        if (cmdLog === '') {
+        if (
+          (
+            permLvl > 0
+            || config.botchannels.includes(msg.channel.name)
+          )
+          && cmdLog === ''
+        ) {
 
           //Ping GTW
           if (['gtw'].includes(cmd)) {
@@ -172,7 +192,7 @@ bot.on('message', async msg => {
           }
           
           //Get Latest Build Link
-          else if (['devbuild', 'latest', 'dvb'].includes(cmd)) {
+          else if (['devbuild', 'dev', 'dvb'].includes(cmd)) {
             cmd = 'devbuild';
             cmdLog = await cmds.checkbuild.checkBuild(msg, `${content} dev`);
           }

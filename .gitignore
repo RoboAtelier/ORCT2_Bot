@@ -1,6 +1,5 @@
 /logs
 /scenarios
 /config.js
-/functions/loader.js
-/functions/inter_check.js
 /botdata
+/resources/devbuilds

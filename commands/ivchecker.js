@@ -1,11 +1,12 @@
 /** Command module that monitors certains processes
  * @module ivchecker
- * @requires reader, writer, orct2web, orct2server
+ * @requires install, orct2web, orct2server, reader, writer, config
  */
-const { getServerDir, readBotData, readServerConfig } = require('../functions/reader');
-const { writeBotData } = require('../functions/writer');
+const { checkInstallation } = require('./install');
 const { getBuildHash, getBuildData, getServerStatus } = require('../functions/orct2web');
 const { killServer, runServer } = require('../functions/orct2server');
+const { getServerDir, readBotData, readServerConfig } = require('../functions/reader');
+const { writeBotData } = require('../functions/writer');
 const { config } = require('../config');
 
 let devChecker = undefined;
@@ -18,11 +19,10 @@ let serverDownCount = {};
  * Creates a checker that performs interval checks for specific conditions
  * and performs an action when a condition is met or changed.
  * 
- * @async
  * @function createNewIntervalChecker
  * @param {Message} msg - Discord message object
  * @param {string} content - Message contents
- * @returns {string} Log entry
+ * @returns {Promise<string>} Log entry
  */
 async function createNewIntervalChecker(msg, content) {
   
@@ -61,11 +61,21 @@ async function createNewIntervalChecker(msg, content) {
       await msg.channel.send(`I'm already checking for develop builds.`);
       return 'Attempted to start interval checker. Already checking for develop builds.';
     };
+    
+    //Check and record new hashes
     devChecker = setInterval(async () => {
-      const curHash = await getBuildHash('dev', config.devuri);
-      const oldHash = await readBotData('devhash');
-      if (curHash !== oldHash) {
-        await writeBotData('devhash', curHash);
+      let latestHash = '';
+      try {
+        latestHash = await getBuildHash('dev', config.devuri);
+      }
+      catch(err) {
+        console.log('Unsuccessful web request.');
+        return;
+      };
+      const curHash = await readBotData('curdevhash');
+      if (latestHash !== curHash) {
+        await writeBotData('lastdevhash', curHash);
+        await writeBotData('curdevhash', latestHash);
         const details = await getBuildData('dev', config.devuri);
         await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW OPENRCT2 BUILD**!\n\n${details}\n${config.devuri}`);
       };
@@ -86,11 +96,21 @@ async function createNewIntervalChecker(msg, content) {
       await msg.channel.send(`I'm already checking for launcher builds.`);
       return 'Attempted to start interval checker. Already checking for launcher builds.';
     };
+    
+    //Check and record new hashes
     lncChecker = setInterval(async () => {
-      const curHash = await getBuildHash('lnc', config.lncuri);
-      const oldHash = await readBotData('lnchash');
-      if (curHash !== oldHash) {
-        await writeBotData('lnchash', curHash);
+      let latestHash = '';
+      try {
+        latestHash = await getBuildHash('lnc', config.lncuri);
+      }
+      catch(err) {
+        console.log('Unsuccessful web request.');
+        return;
+      };
+      const curHash = await readBotData('curlnchash');
+      if (latestHash !== curHash) {
+        await writeBotData('lastlnchash', curHash);
+        await writeBotData('curlnchash', latestHash);
         const details = await getBuildData('lnc', config.lncuri);
         await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW LAUNCHER BUILD**!\n\n${details}\n${config.lncuri}`);
       };
@@ -117,9 +137,18 @@ async function createNewIntervalChecker(msg, content) {
       await msg.channel.send(`I'm already checking for Server #${server}.`);
       return 'Attempted to start interval checker. Already checking for a particular server.';
     };
+    
+    //Push server into check queue
     serverQueue.push(server);
     if (serverChecker === undefined) {
+      
+      //Check and restart servers if down
       serverChecker = setInterval(async () => {
+        
+        //Prevent Server Launch during Installation
+        if (checkInstallation()) {
+          return;
+        };
         let ips = [];
         let ipKeys = {};
         let serverDir = '';
@@ -132,7 +161,16 @@ async function createNewIntervalChecker(msg, content) {
           ipKeys[ip] = serverQueue[i];
           ips.push(ip);
         };
-        const check = await getServerStatus(ips);
+        let check = [];
+        try {
+          check = await getServerStatus(ips);
+        }
+        catch(err) {
+          console.log('Unsuccessful master server request.');
+          return;
+        };
+        
+        //Any downed servers are restarted
         if (check.matches.length !== ips.length) {
           for (let i = 0; i < ips.length; i++) {
             if (check.matches.includes(ips[i])) {
@@ -163,14 +201,15 @@ async function createNewIntervalChecker(msg, content) {
 /**
  * Stops an interval checker and removes it.
  * 
- * @async
  * @function stopIntervalChecker
  * @param {Message} msg - Discord message object
  * @param {string} content - Message contents
  * @param {string} [option] - Option that determines function behavior
- * @returns {string} Log entry
+ * @returns {Promise<string>} Log entry
  */
 async function stopIntervalChecker(msg, content, option='') {
+  
+  //Dev checker
   if (option.includes('d') || content.startsWith('dev')) {
     if (devChecker !== undefined) {
       clearInterval(devChecker);
@@ -183,6 +222,8 @@ async function stopIntervalChecker(msg, content, option='') {
       return 'Attempted to stop interval checker. Checker for devbuild not running.';
     };
   }
+  
+  //Launcher checker
   else if (
     option.includes('l')
     || content === 'lnc'
@@ -199,8 +240,12 @@ async function stopIntervalChecker(msg, content, option='') {
       return 'Attempted to stop interval checker. Checker for launcher not running.';
     };
   }
+  
+  //Server checker
   else if (/^[1-9][0-9]*$/.test(content)) {
     server = parseInt(content);
+    
+    //Clear checker when queue is empty
     if (serverQueue.includes(server)) {
       serverQueue.splice(serverQueue.indexOf(server), 1);
       serverDownCount[server] = undefined;

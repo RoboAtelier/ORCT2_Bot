@@ -52,7 +52,8 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
   if (headless === true) {
     options.push('--headless');
   };
-  const childProcess = await spawn(`${process.env.HOME
+  const childProcess = await spawn(`${
+  process.env.HOME
   || process.env.HOMEPATH
   || process.env.USERPROFILE}/OpenRCT2/openrct2`, options);
   servers[server] = childProcess.pid;
@@ -66,7 +67,6 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
 /**
  * Kills a running OpenRCT2 server.
  * 
- * @async
  * @function killOpenRCT2Server
  * @param {number} server - Server number to kill
  */
@@ -79,8 +79,19 @@ async function getServerScenario(server) {
   return serverMaps[server];
 };
 
+/**
+ * Gets a list of all running servers.
+ * 
+ * @function getRunningServers
+ * @returns {Array<number>} Array of server numbers
+ */
+function getRunningServers() {
+  return Object.keys(servers);
+};
+
 module.exports = {
   getScenario: getServerScenario,
+  getServers: getRunningServers,
   killServer: killOpenRCT2Server,
   runServer: runOpenRCT2Server,
 };
