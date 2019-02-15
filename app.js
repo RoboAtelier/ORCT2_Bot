@@ -104,7 +104,7 @@ bot.on('message', async msg => {
           }
           
           //Restart OpenRCT2 Server
-          else if (['test'].includes(cmd)) {
+          else if (['restart'].includes(cmd)) {
             cmd = 'svrops';
             cmdLog = await cmds.svrops.run(msg, `-a ${content}`);
           }
