@@ -319,6 +319,7 @@ async function createFinalScenarioDownload(msg, content) {
       };
       if (saveName === 'AUTOSAVE' && confirming === false) {
         confirming = true;
+        loading = false;
         await msg.channel.send('Could not get server map name. Type in `,finalize (map name)` to resolve this, or re-enter `,finalize` to post with just AUTOSAVE.');
         setTimeout(() => {
           confirming = false;
