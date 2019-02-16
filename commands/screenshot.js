@@ -319,7 +319,7 @@ async function createFinalScenarioDownload(msg, content) {
       };
       if (saveName === 'AUTOSAVE' && confirming === false) {
         confirming = true;
-        loading = false;
+        finalizing = false;
         await msg.channel.send('Could not get server map name. Type in `,finalize (map name)` to resolve this, or re-enter `,finalize` to post with just AUTOSAVE.');
         setTimeout(() => {
           confirming = false;
@@ -402,8 +402,8 @@ async function createFinalScenarioDownload(msg, content) {
       return 'Attempted to create final scenario post. Screenshot took too long to load.';
     }
     else {
-      await loadMsg.edit(`There are no autosaves for Server #${server}!`);
       finalizing = false;
+      await loadMsg.edit(`There are no autosaves for Server #${server}!`);
       return 'Attempted to create final scenario post. No autosaves found.';
     };
   }
