@@ -25,6 +25,23 @@ async function installNewOpenRCT2GameBuild(msg, content) {
   //Prevent installation interruptions
   if (loading === false) {
     
+    //Get build uri
+    const uri = content.startsWith('-l')
+    ? config.devuri
+    : config.devuri.replace('latest', content);
+    let dl = undefined;
+    try {
+      dl = await getDownloadLink('linux', uri);
+    }
+    catch(err) {
+      await msg.channel.send('Bad build hash. Confirm the hash on the downloads page: https://openrct2.org/downloads');
+      return 'Attempted to install an OpenRCT2 build. Bad hash given.';
+    };
+    if (dl === undefined) {
+      await msg.channel.send('Build for Linux not available. Check the downloads page: https://openrct2.org/downloads');
+      return 'Attempted to install an OpenRCT2 build. Linux build not available.';
+    };
+    
     //Confirm user request
     if (confirming === false) {
       confirming = true;
@@ -62,23 +79,6 @@ async function installNewOpenRCT2GameBuild(msg, content) {
         await shutMsg.edit('All servers closed!');
       };
       
-      //Get build uri
-      const uri = content.startsWith('-l')
-      ? config.devuri
-      : config.devuri.replace('latest', content);
-      let dl = undefined;
-      try {
-        dl = await getDownloadLink('linux', uri);
-      }
-      catch(err) {
-        loading = false;
-        await msg.channel.send('Bad build hash. Confirm the hash on the downloads page: https://openrct2.org/downloads');
-        return 'Attempted to install an OpenRCT2 build. Bad hash given.';
-      };
-      if (dl === undefined) {
-        await msg.channel.send('Build for Linux not available. Check the downloads page: https://openrct2.org/downloads');
-        return 'Attempted to install an OpenRCT2 build. Linux build not available.';
-      };
       await msg.channel.send(`Build found: *${dl.slice(dl.lastIndexOf('/') + 1)}*`)
       const dlPath = `${config.devbuilds}/${dl.slice(dl.lastIndexOf('/') + 1)}`;
       
