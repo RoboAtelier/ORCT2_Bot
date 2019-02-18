@@ -193,6 +193,15 @@ async function installNewOpenRCT2GameBuild(msg, content) {
 };
 
 /**
+ * Resets installation process state caused by errors or hangs.
+ * 
+ * @function clearInstallProcess()
+ */
+function clearInstallProcess() {
+  loading = false;
+};
+
+/**
  * Checks if an OpenRCT2 build installation is in progress.
  * 
  * @function checkOpenRCT2IsInstalling
@@ -203,6 +212,7 @@ function checkOpenRCT2IsInstalling() {
 };
 
 module.exports = {
-  installOpenRCT2: installNewOpenRCT2GameBuild,
+  clear: clearInstallProcess,
   checkInstallation: checkOpenRCT2IsInstalling,
+  installOpenRCT2: installNewOpenRCT2GameBuild,
 };

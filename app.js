@@ -75,6 +75,14 @@ bot.on('message', async msg => {
             cmdLog = await cmds.install.installOpenRCT2(msg, content);
           }
           
+          //Clear Up Hanging Process states
+          else if (['cleanup', 'clear'].includes(cmd)) {
+            cmd = 'cleanup';
+            cmds.screenshot.clearUp();
+            cmds.install.clearUp();
+            cmdLog = 'Reset command process states.';
+          }
+          
           //Create Autochecker
           else if (['autocheck', 'achk'].includes(cmd)) {
             cmd = 'ivchecker';

@@ -215,7 +215,7 @@ async function startScenarioVote(msg, content) {
           : `${highest - 1} votes`;
           top.length === 1
           ? await voteMsg.edit(`${voteMsg.content}\n\nSelected scenario: **${scenario.substring(0, scenario.length - 4)}** (${voteCount})\n\nMap change in 10 seconds.`)
-          : await voteMsg.edit(`${voteMsg.content}\n\nThere was a tie! Randomly picked: **${scenario.substring(0, scenario.length - 4)}** (${voteCount} votes)\n\nMap change in 10 seconds.`);
+          : await voteMsg.edit(`${voteMsg.content}\n\nThere was a tie! Randomly picked: **${scenario.substring(0, scenario.length - 4)}** (${voteCount})\n\nMap change in 10 seconds.`);
         };
         if (scenario.length > 0) {
           scenarioVote.session = setTimeout(async () => {
@@ -224,7 +224,7 @@ async function startScenarioVote(msg, content) {
             scenarioVote.session = undefined;
             await killServer(1);
             await runServer(scenario, 1);
-            await msg.guild.channels.get(config.mainchannel).send(`Starting up **${scenario.substring(0, scenario.length - 4)}** on Server #${server}.`);
+            await msg.guild.channels.get(config.mainchannel).send(`Starting up **${scenario.substring(0, scenario.length - 4)}** on Server #1.`);
           }, 10000);
         }
         else {

@@ -154,6 +154,7 @@ async function createPreviewScreenshot(msg, content) {
           resolve(false);
         }, 10000);
       }).catch(err => {
+        loading = false;
         throw err;
       });
       
@@ -242,6 +243,7 @@ async function createServerScreenshot(msg, content) {
           resolve(false);
         }, 10000);
       }).catch(err => {
+        loading = false;
         throw err;
       });
       
@@ -283,8 +285,8 @@ async function createFinalScenarioDownload(msg, content) {
   
   //Only run with a single screenshot process at a time
   if (finalizing === false) {
-    let input = content;
     finalizing = true;
+    let input = content;
     
     //Get desired server directory
     let server = 1;
@@ -383,6 +385,7 @@ async function createFinalScenarioDownload(msg, content) {
           resolve(false);
         }, 10000);
       }).catch(err => {
+        finalizing = false;
         throw err;
       });
       
@@ -413,7 +416,18 @@ async function createFinalScenarioDownload(msg, content) {
   };
 };
 
+/**
+ * Resets screenshot process states caused by errors or hangs.
+ * 
+ * @function clearScreenshotProcesses()
+ */
+function clearScreenshotProcesses() {
+  loading = false;
+  finalizing = false;
+};
+
 module.exports = {
+  clear: clearScreenshotProcesses,
   finalize: createFinalScenarioDownload,
   previewMap: createPreviewScreenshot,
   peekServer: createServerScreenshot,
