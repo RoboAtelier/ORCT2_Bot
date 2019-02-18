@@ -344,7 +344,7 @@ async function createFinalScenarioDownload(msg, content) {
       const similarFinals = readdirSync(config.finals)
       .filter(save => save.startsWith(`${saveName}_FINAL_${curDate}`));
       if (similarFinals.length > 0) {
-        curDate = `${curDate}(${similarFinals.length + 1})`
+        curDate = `${curDate}_(${similarFinals.length + 1})`;
       };
       copyFileSync(
         `${serverDir}/save/autosave/${autosave}`,
