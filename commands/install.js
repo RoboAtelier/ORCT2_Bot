@@ -46,6 +46,7 @@ async function installNewOpenRCT2GameBuild(msg, content) {
         await msg.channel.send('You must enter the build hash you want to install.');
         return 'Attempted to install an OpenRCT2 build. No input was given.'
       };
+      await msg.channel.send('Starting installation... Please do not interrupt me until I\'m finished.');
       
       //Shutdown any running servers
       const servers = getServers();

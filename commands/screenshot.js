@@ -334,7 +334,7 @@ async function createFinalScenarioDownload(msg, content) {
         month: 'short',
         day: '2-digit',
       };
-      const curDate = new Date()
+      let curDate = new Date()
       .toLocaleDateString('en-EN')
       .split('/')
       .join('-')
