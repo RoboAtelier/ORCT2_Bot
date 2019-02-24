@@ -68,7 +68,7 @@ async function runNewServerScenario(msg, content) {
     : await runServer('AUTOSAVE', server, serverDir);
     if (scenario.length > 0) {
       await msg.channel.send(`Starting up last autosave on Server #${server}.`);
-      await msg.guild.channels.get(config.mainchannel).send(`Now resuming last autosave on Server #${server}!`);
+      await msg.guild.channels.get(config.alertchannel).send(`Now resuming last autosave on Server #${server}!`);
       return `Successfully loaded last autosave on Server #${server}.`;
     }
     else {
@@ -108,7 +108,7 @@ async function runNewServerScenario(msg, content) {
     ? await runServer(results[0], server, serverDir, true)
     : await runServer(results[0], server, serverDir);
     await msg.channel.send(`Starting up **${results[0].substring(0, results[0].length - 4)}** on Server #${server}.`);
-    await msg.guild.channels.get(config.mainchannel).send(`Now running **${results[0].substring(0, results[0].length - 4)}** on Server #${server}!`);
+    await msg.guild.channels.get(config.alertchannel).send(`Now running **${results[0].substring(0, results[0].length - 4)}** on Server #${server}!`);
     return `Successfully loaded '${results[0].substring(0, results[0].length - 4)}' on Server #${server}.`;
   };
 };

@@ -72,7 +72,7 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
  */
 async function killOpenRCT2Server(server) {
   await spawn('kill', ['-s', '1', servers[server]]);
-  servers[server] = undefined;
+  delete servers[server];
 };
 
 async function getServerScenario(server) {

@@ -2,10 +2,17 @@
  * @module ivchecker
  * @requires install, orct2web, orct2server, reader, writer, config
  */
+const { unlinkSync } = require('fs');
 const { checkInstallation } = require('./install');
 const { getBuildHash, getBuildData, getServerStatus } = require('../functions/orct2web');
 const { killServer, runServer } = require('../functions/orct2server');
-const { getServerDir, readBotData, readServerConfig } = require('../functions/reader');
+const {
+  getAutosaveCount,
+  getLatestAutosave,
+  getServerDir,
+  readBotData,
+  readServerConfig
+} = require('../functions/reader');
 const { writeBotData } = require('../functions/writer');
 const { config } = require('../config');
 
@@ -77,7 +84,7 @@ async function createNewIntervalChecker(msg, content) {
         await writeBotData('lastdevhash', curHash);
         await writeBotData('curdevhash', latestHash);
         const details = await getBuildData('dev', config.devuri);
-        await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW OPENRCT2 BUILD**!\n\n${details}\n${config.devuri}`);
+        await msg.guild.channels.get(config.alertchannel).send(`*BREAKING NEWS*\nThere's a **NEW OPENRCT2 BUILD**!\n\n${details}\n${config.devuri}`);
       };
     }, interval);
     interval === 60000
@@ -112,7 +119,7 @@ async function createNewIntervalChecker(msg, content) {
         await writeBotData('lastlnchash', curHash);
         await writeBotData('curlnchash', latestHash);
         const details = await getBuildData('lnc', config.lncuri);
-        await msg.guild.channels.get(config.mainchannel).send(`*BREAKING NEWS*\nThere's a **NEW LAUNCHER BUILD**!\n\n${details}\n${config.lncuri}`);
+        await msg.guild.channels.get(config.alertchannel).send(`*BREAKING NEWS*\nThere's a **NEW LAUNCHER BUILD**!\n\n${details}\n${config.lncuri}`);
       };
     }, interval);
     interval === 60000
@@ -183,10 +190,22 @@ async function createNewIntervalChecker(msg, content) {
               if (serverDownCount[serverQueue[i]] < 3) {
                 await killServer(serverQueue[i]);
                 await runServer('AUTOSAVE', serverQueue[i], serverDir);
-                await msg.guild.channels.get(config.mainchannel).send(`Hmm... Server #${serverQueue[i]} appears to be down, restarting!`);
+                await msg.guild.channels.get(config.alertchannel).send(`Hmm... Server #${serverQueue[i]} appears to be down, restarting!`);
               }
-              else if (serverDownCount[serverQueue[i]] === 3) {
-                await msg.guild.channels.get(config.mainchannel).send(`Server #${serverQueue[i]} is not working properly or the master server is down.`);
+              else if (serverDownCount[serverQueue[i]] >= 3) {
+                const autoCount = await getAutosaveCount(serverDir);
+                if (autoCount > 1) {
+                  const autosave = await getLatestAutosave(serverDir);
+                  renameSync(
+                    `${serverDir}/save/autosave/${autosave}`,
+                    `${serverDir}/save/dsc_${autosave}`
+                  );
+                }
+                await killServer(serverQueue[i]);
+                await runServer('AUTOSAVE', serverQueue[i], serverDir);
+                if (serverDownCount[serverQueue[i]] == 3) {
+                  await msg.guild.channels.get(config.alertchannel).send(`Server #${serverQueue[i]} is not working properly, changing autosaves.`); 
+                }
               };
             };
           };

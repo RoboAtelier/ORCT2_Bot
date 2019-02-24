@@ -71,7 +71,6 @@ async function getScenarios(path = config.scenarios, search = '') {
 /**
  * Gets latest autosave in a server directory.
  * 
- * @async
  * @function getLatestAutosave
  * @param {string} dir - Server directory to look in
  * @returns {string} Name of matched autosave if found.
@@ -85,7 +84,7 @@ async function getLatestAutosave(dir) {
     return '';
   };
   const autosaves = readdirSync(`${path}/autosave`, 'utf8');
-  if (autosaves.length === 0) {
+  if (autosaves.length == 0) {
     return '';
   };
   let latest = '';
@@ -99,6 +98,25 @@ async function getLatestAutosave(dir) {
   };
   return latest;
 };
+
+/**
+ * Gets number of autosaves in a server directory.
+ * 
+ * @function getAutosaveCount
+ * @param {string} dir - Server directory to look in
+ * @returns {number} Number of autosaves in the folder.
+ */
+async function getAutosaveCount(dir) {
+  let path = `${dir}/save`;
+  const check = readdirSync(`${path}`, 'utf8').find(file => {
+    return file === 'autosave';
+  });
+  if (check === undefined) {
+    return '';
+  };
+  const autosaves = readdirSync(`${path}/autosave`, 'utf8');
+  return autosaves.count;
+}
 
 /**
  * Reads the bot data file.
@@ -144,6 +162,7 @@ async function readServerConfig(dir = config.openrct2, field = '') {
 };
 
 module.exports = {
+  getAutosaveCount,
   getLatestAutosave,
   getPreview: getScenarioPreviewScreenshot,
   getScenarios,

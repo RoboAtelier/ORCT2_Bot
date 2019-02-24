@@ -159,7 +159,7 @@ async function startScenarioVote(msg, content) {
     for (let i = 0; i < 10; i++) {
       choiceString = `${choiceString}${voteEmojis[i]} | ${voteChoices[i].substring(0, voteChoices[i].length - 4)}\n`
     };
-    const voteMsg = await msg.guild.channels.get(config.mainchannel).send(`Choose the next scenario:\n\n${choiceString}${voteEmojis[10]} | New selection of maps`);
+    const voteMsg = await msg.guild.channels.get(config.alertchannel).send(`Choose the next scenario:\n\n${choiceString}${voteEmojis[10]} | New selection of maps`);
     
     //Initiate voting
     if (scenarioVote.active === false) {
@@ -224,7 +224,7 @@ async function startScenarioVote(msg, content) {
             scenarioVote.session = undefined;
             await killServer(1);
             await runServer(scenario, 1);
-            await msg.guild.channels.get(config.mainchannel).send(`Starting up **${scenario.substring(0, scenario.length - 4)}** on Server #1.`);
+            await msg.guild.channels.get(config.alertchannel).send(`Starting up **${scenario.substring(0, scenario.length - 4)}** on Server #1.`);
           }, 10000);
         }
         else {

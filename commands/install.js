@@ -3,10 +3,11 @@
  * @requires child_process, fs, http, orct2server, orct2web, config
  */
 const { spawn } = require('child_process');
-const { createWriteStream, createReadStream, unlink } = require('fs');
+const { createWriteStream, createReadStream, renameSync } = require('fs');
 const { get } = require('http');
 const { runServer, killServer, getServers } = require('../functions/orct2server');
 const { getDownloadLink } = require('../functions/orct2web');
+const { getAutosaveCount, getServerDir, getLatestAutosave } = require('../functions/reader');
 const { config } = require ('../config');
 
 let loading = false;
@@ -75,6 +76,15 @@ async function installNewOpenRCT2GameBuild(msg, content) {
         const shutMsg = await msg.channel.send('Shutting down all servers...');
         for (let i = 0; i < servers.length; i++) {
           await killServer(servers[i]);
+          const dir = await getServerDir(servers[i]);
+          const autoCount = await getAutosaveCount(dir);
+          if (autoCount > 1) {
+            const autosave = await getLatestAutosave(dir);
+            renameSync(
+              `${dir}/save/autosave/${autosave}`,
+              `${dir}/save/dsc_${autosave}`
+            );
+          }
         };
         await shutMsg.edit('All servers closed!');
       };
