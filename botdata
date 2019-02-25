@@ -1,5 +1,7 @@
 prefix=,
-lastdevhash=
 curdevhash=
-lastlnchash=
+lastdevhash=
 curlnchash=
+lastlnchash=
+curinstall=latest
+lastinstall=

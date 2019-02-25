@@ -78,9 +78,10 @@ bot.on('message', async msg => {
           //Clear Up Hanging Process states
           else if (['cleanup', 'clear'].includes(cmd)) {
             cmd = 'cleanup';
-            cmds.screenshot.clearUp();
-            cmds.install.clearUp();
+            cmds.screenshot.clear();
+            cmds.install.clear();
             cmdLog = 'Reset command process states.';
+            msg.channel.send('Cleaned up install and screenshot processes.');
           }
           
           //Create Autochecker

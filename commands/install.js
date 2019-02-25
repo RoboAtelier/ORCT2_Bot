@@ -7,7 +7,13 @@ const { createWriteStream, createReadStream, renameSync } = require('fs');
 const { get } = require('http');
 const { runServer, killServer, getServers } = require('../functions/orct2server');
 const { getDownloadLink } = require('../functions/orct2web');
-const { getAutosaveCount, getServerDir, getLatestAutosave } = require('../functions/reader');
+const {
+  getAutosaveCount,
+  getServerDir,
+  getLatestAutosave,
+  readBotData,
+} = require('../functions/reader');
+const { writeBotData } = require('../functions/writer');
 const { config } = require ('../config');
 
 let loading = false;
@@ -27,9 +33,14 @@ async function installNewOpenRCT2GameBuild(msg, content) {
   if (loading === false) {
     
     //Get build uri
-    const uri = content.startsWith('-l')
-    ? config.devuri
-    : config.devuri.replace('latest', content);
+    let uri = config.uri;
+    if (content.startsWith('-u') || content == ('--undo')) {
+      const lastInstall = await readBotData('lastinstall');
+      uri.replace('latest', lastInstall);
+    }
+    else if (!(content.startsWith('-l') || content == ('--latest'))) {
+      config.devuri.replace('latest', content);
+    }
     let dl = undefined;
     try {
       dl = await getDownloadLink('linux', uri);
@@ -193,6 +204,10 @@ async function installNewOpenRCT2GameBuild(msg, content) {
         await msg.guild.channels.get(config.mainchannel).send('Our OpenRCT2 build has been installed! Check that you are on our version. If not: https://openrct2.org/downloads');
       };
       loading = false;
+      const oldHash = await readBotData('curinstall');
+      const curHash = dl.slice(dl.lastIndexOf('/') + 1).split('-')[3];
+      await writeBotData('lastinstall', oldHash);
+      await writeBotData('curinstall', curHash);
       await msg.channel.send('Build update successful!');
       return 'Successfully installed desired develop build of OpenRCT2.'
     };
