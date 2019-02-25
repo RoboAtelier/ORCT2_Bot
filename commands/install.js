@@ -34,11 +34,11 @@ async function installNewOpenRCT2GameBuild(msg, content) {
     
     //Get build uri
     let uri = config.uri;
-    if (content.startsWith('-u') || content == ('--undo')) {
+    if (content.startsWith('-u') || content === '--undo') {
       const lastInstall = await readBotData('lastinstall');
       uri.replace('latest', lastInstall);
     }
-    else if (!(content.startsWith('-l') || content == ('--latest'))) {
+    else if (!(content.startsWith('-l') || content === '--latest')) {
       config.devuri.replace('latest', content);
     }
     let dl = undefined;
