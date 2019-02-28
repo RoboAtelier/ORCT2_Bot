@@ -209,7 +209,12 @@ async function createNewIntervalChecker(msg, content) {
               };
             };
           };
-        };
+        }
+        else {
+          for (let i = 0; i < ips.length; i++) {
+            serverDownCount[serverQueue[i]] = 0;
+          }
+        }
       }, interval);
     };
     await msg.channel.send(`I'm now monitoring the status of Server #${server}.`);
