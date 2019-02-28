@@ -198,7 +198,7 @@ async function createNewIntervalChecker(msg, content) {
                   const autosave = await getLatestAutosave(serverDir);
                   renameSync(
                     `${serverDir}/save/autosave/${autosave}`,
-                    `${serverDir}/save/dsc_${autosave}`
+                    `${serverDir}/save/autosave/dsc_${autosave}`
                   );
                 }
                 await killServer(serverQueue[i]);

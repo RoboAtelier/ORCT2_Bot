@@ -93,7 +93,7 @@ async function installNewOpenRCT2GameBuild(msg, content) {
             const autosave = await getLatestAutosave(dir);
             renameSync(
               `${dir}/save/autosave/${autosave}`,
-              `${dir}/save/dsc_${autosave}`
+              `${dir}/save/autosave/dsc_${autosave}`
             );
           }
         };
@@ -197,8 +197,9 @@ async function installNewOpenRCT2GameBuild(msg, content) {
       //Restart any servers that were shutdown
       if (servers.length > 0) {
         const restartMsg = await msg.channel.send('Restarting all servers...');
+        const dir = getServerDir(servers[i]);
         for (let i = 0; i < servers.length; i++) {
-          await runServer('AUTOSAVE', servers[i]);
+          await runServer('AUTOSAVE', servers[i], dir);
         };
         await restartMsg.edit('All servers restarted!');
         await msg.guild.channels.get(config.alertchannel).send('Our OpenRCT2 build has been installed! Check that you are on our version. If not: https://openrct2.org/downloads');
