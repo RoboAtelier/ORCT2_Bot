@@ -160,9 +160,10 @@ async function createNewIntervalChecker(msg, content) {
         let ipKeys = {};
         let serverDir = '';
         for (let i = 0; i < serverQueue.length; i++) {
-          serverDir = serverQueue[i] === 1
-          ? config.openrct2
-          : await getServerDir(serverQueue[i]);
+          let serverDir = config.openrct2
+          if (serverQueue[i] !== 1) {
+            serverDir = await getServerDir(serverQueue[i]);
+          }
           const port = await readServerConfig(serverDir, 'default_port');
           const ip = `${config.defaultip}:${port}`;
           ipKeys[ip] = serverQueue[i];
@@ -189,10 +190,14 @@ async function createNewIntervalChecker(msg, content) {
               : serverDownCount[serverQueue[i]] = serverDownCount[serverQueue[i]] + 1;
               if (serverDownCount[serverQueue[i]] < 3) {
                 await killServer(serverQueue[i]);
+                await new Promise((resolve, reject) => {
+                  setTimeout(() => resolve(), 1000)
+                })
                 await runServer('AUTOSAVE', serverQueue[i], serverDir);
                 await msg.guild.channels.get(config.alertchannel).send(`Hmm... Server #${serverQueue[i]} appears to be down, restarting!`);
               }
               else if (serverDownCount[serverQueue[i]] >= 3) {
+                await killServer(serverQueue[i]);
                 const autoCount = await getAutosaveCount(serverDir);
                 if (autoCount > 1) {
                   const autosave = await getLatestAutosave(serverDir);
@@ -201,7 +206,9 @@ async function createNewIntervalChecker(msg, content) {
                     `${serverDir}/save/autosave/dsc_${autosave}`
                   );
                 }
-                await killServer(serverQueue[i]);
+                await new Promise((resolve, reject) => {
+                  setTimeout(() => resolve(), 1000)
+                })
                 await runServer('AUTOSAVE', serverQueue[i], serverDir);
                 if (serverDownCount[serverQueue[i]] == 3) {
                   await msg.guild.channels.get(config.alertchannel).send(`Server #${serverQueue[i]} is not working properly, changing autosaves.`); 

@@ -87,7 +87,10 @@ async function installNewOpenRCT2GameBuild(msg, content) {
         const shutMsg = await msg.channel.send('Shutting down all servers...');
         for (let i = 0; i < servers.length; i++) {
           await killServer(servers[i]);
-          const dir = await getServerDir(servers[i]);
+          let dir = config.openrct2;
+          if (servers[i] !== 1) {
+            dir = await getServerDir(servers[i]);
+          }
           const autoCount = await getAutosaveCount(dir);
           if (autoCount > 1) {
             const autosave = await getLatestAutosave(dir);
@@ -197,9 +200,15 @@ async function installNewOpenRCT2GameBuild(msg, content) {
       //Restart any servers that were shutdown
       if (servers.length > 0) {
         const restartMsg = await msg.channel.send('Restarting all servers...');
-        const dir = getServerDir(servers[i]);
         for (let i = 0; i < servers.length; i++) {
+          let dir = config.openrct2;
+          if (servers[i] !== 1) {
+            dir = getServerDir(servers[i]); 
+          }
           await runServer('AUTOSAVE', servers[i], dir);
+          await new Promise((resolve, reject) => {
+            setTimeout(() => resolve(), 1000)
+          })
         };
         await restartMsg.edit('All servers restarted!');
         await msg.guild.channels.get(config.alertchannel).send('Our OpenRCT2 build has been installed! Check that you are on our version. If not: https://openrct2.org/downloads');
