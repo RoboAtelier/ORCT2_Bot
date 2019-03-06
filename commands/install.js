@@ -203,7 +203,7 @@ async function installNewOpenRCT2GameBuild(msg, content) {
         for (let i = 0; i < servers.length; i++) {
           let dir = config.openrct2;
           if (servers[i] !== 1) {
-            dir = getServerDir(servers[i]); 
+            dir = await getServerDir(servers[i]); 
           }
           await runServer('AUTOSAVE', servers[i], dir);
           await new Promise((resolve, reject) => {
