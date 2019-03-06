@@ -160,7 +160,7 @@ async function createNewIntervalChecker(msg, content) {
         let ipKeys = {};
         let serverDir = '';
         for (let i = 0; i < serverQueue.length; i++) {
-          let serverDir = config.openrct2
+          serverDir = config.openrct2
           if (serverQueue[i] !== 1) {
             serverDir = await getServerDir(serverQueue[i]);
           }
