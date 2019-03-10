@@ -80,6 +80,7 @@ async function installNewOpenRCT2GameBuild(msg, content) {
       //Shutdown any running servers
       const servers = getServers();
       if (servers.length > 0) {
+        await msg.guild.channels.get(config.mainchannel).send('We\'re updating our OpenRCT2 build soon! Please save your current progress then disconnect.');
         await msg.guild.channels.get(config.alertchannel).send('We\'re updating our OpenRCT2 build soon! Please save your current progress then disconnect.');
         await new Promise((resolve, reject) => {
           setTimeout(() => resolve(), 30000);
@@ -202,7 +203,7 @@ async function installNewOpenRCT2GameBuild(msg, content) {
         const restartMsg = await msg.channel.send('Restarting all servers...');
         for (let i = 0; i < servers.length; i++) {
           let dir = config.openrct2;
-          if (servers[i] !== 1) {
+          if (servers[i] > 1) {
             dir = await getServerDir(servers[i]); 
           }
           await runServer('AUTOSAVE', servers[i], dir);

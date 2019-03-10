@@ -164,7 +164,7 @@ async function startScenarioVote(msg, content) {
     //Initiate voting
     if (scenarioVote.active === false) {
       scenarioVote.active = true;
-      await msg.channel.send(`Started scenario vote in <#${config.mainchannel}>.`)
+      await msg.channel.send(`Started scenario vote in <#${config.alertchannel}>.`)
     };
     scenarioVote.scenarios = scenarios;
     scenarioVote.msg = voteMsg;
