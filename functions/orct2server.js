@@ -22,7 +22,7 @@ let serverMaps = {};
  * @return {string} - Name of scenario hosted or an empty string.
  */
 async function runOpenRCT2Server(scenario, server, path=config.openrct2, headless=false) {
-  let options = [
+  let params = [
     'host',
     `${config.scenarios}/${scenario}`,
     '--port',
@@ -31,7 +31,7 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
   const port = serverConfig.find(line => {
     return line.startsWith('default_port')
   });
-  options.push(port);
+  params.push(port);
   if (scenario.startsWith('AUTOSAVE')) {
     let dir = config.openrct2;
     if (server > 1) {
@@ -39,24 +39,29 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
     };
     const autosave = await getLatestAutosave(dir);
     if (autosave.length > 0) {
-      options[1] = `${path}/save/autosave/${autosave}`
+      params[1] = `${path}/save/autosave/${autosave}`
     }
     else {
       return '';
     };
   };
   if (server > 1) {
-    options.push('--user-data-path');
-    options.push(path);
+    params.push('--user-data-path');
+    params.push(path);
   };
   if (headless === true) {
-    options.push('--headless');
+    params.push('--headless');
   };
   const childProcess = await spawn(`${
   process.env.HOME
   || process.env.HOMEPATH
-  || process.env.USERPROFILE}/OpenRCT2/openrct2`, options);
+  || process.env.USERPROFILE}/OpenRCT2/openrct2`, params, {
+    shell: true,
+    detached: true,
+    stdio: 'ignore',
+  });
   servers[server] = childProcess.pid;
+  childProcess.unref();
   if (!scenario.startsWith('AUTOSAVE')) {
     serverMaps[server] = scenario.slice(0, scenario.length - 4);
   };
