@@ -56,7 +56,6 @@ async function runOpenRCT2Server(scenario, server, path=config.openrct2, headles
   process.env.HOME
   || process.env.HOMEPATH
   || process.env.USERPROFILE}/OpenRCT2/openrct2`, params, {
-    shell: true,
     detached: true,
     stdio: 'ignore',
   });
