@@ -157,7 +157,7 @@ async function getServerStatus(inputs) {
         //Filter by Name Substring
         let found = false;
         for (let i = 0; i < inputs.length; i++) {
-          if (server.name.toLowerCase().includes(inputs[i])) {
+          if (server.name.toLowerCase().includes(inputs[i].toLowerCase())) {
             matches.push(inputs[i]);
             found = true;
             break;
