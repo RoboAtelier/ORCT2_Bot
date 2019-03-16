@@ -36,10 +36,10 @@ async function installNewOpenRCT2GameBuild(msg, content) {
     let uri = config.devuri;
     if (content.startsWith('-u') || content === '--undo') {
       const lastInstall = await readBotData('lastinstall');
-      uri.replace('latest', lastInstall);
+      uri = uri.replace('latest', lastInstall);
     }
     else if (!(content.startsWith('-l') || content === '--latest')) {
-      config.devuri.replace('latest', content);
+      uri = uri.replace('latest', content);
     }
     let dl = undefined;
     try {
