@@ -56,9 +56,18 @@ async function getScenarios(path = config.scenarios, search = '') {
     else if (search.includes('"')) {
       exact = search.slice(1, search.slice(1).indexOf('"') + 1);
     };
-    scenarios = scenarios.filter(scenario => {
+    let check = scenarios.filter(scenario => {
       return (scenario === exact || scenario.slice(0, scenario.length - 4) === exact);
     });
+    if (check.length == 0) {
+      scenarios = scenarios.filter(scenario => {
+        return (scenario.toLowerCase() === exact.toLowerCase()
+        || scenario.slice(0, scenario.length - 4).toLowerCase() === exact.toLowerCase());
+      });
+    }
+    else {
+      scenarios = check;
+    }
   }
   else if (search.length > 0) {
     scenarios = scenarios.filter(scenario => {
