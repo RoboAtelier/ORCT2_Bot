@@ -77,7 +77,7 @@ async function checkServerIsOnline(msg, content) {
       results.servers = results.servers.splice((20*(page - 1)), 20);
       //Create Message Body with All Online Servers
       for (let i = 0; i < results.servers.length; i++) {
-        status = `${status}${i + 1}.) *${results.servers[i].name}*\n`
+        status = `${status}${i + 1}.) (${results.servers[i].players}P) *${results.servers[i].name}*\n`
       };
       status = `${status}\nPage: *${page}/${pages}*`;
     };

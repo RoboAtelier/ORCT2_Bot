@@ -112,12 +112,6 @@ bot.on('message', async msg => {
             cmdLog = await cmds.svrops.stop(msg, content);
           }
           
-          //Restart OpenRCT2 Server
-          else if (['restart'].includes(cmd)) {
-            cmd = 'svrops';
-            cmdLog = await cmds.svrops.run(msg, `-a ${content}`);
-          }
-          
           //Show Registered Users
           else if (['users', 'usrs'].includes(cmd)) {
             cmd = 'svrconfig';
@@ -216,6 +210,12 @@ bot.on('message', async msg => {
           else if (['isup', 'up'].includes(cmd)) {
             cmd = 'isup';
             cmdLog = await cmds.isup.isUp(msg, content);
+          }
+          
+          //Restart OpenRCT2 Server
+          else if (['restart'].includes(cmd)) {
+            cmd = 'svrops';
+            cmdLog = await cmds.svrops.run(msg, `-a ${content}`);
           }
           
           //Show Available Scenarios

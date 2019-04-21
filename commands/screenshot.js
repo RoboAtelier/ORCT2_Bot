@@ -291,7 +291,7 @@ async function createFinalScenarioDownload(msg, content) {
     //Get desired server directory
     let server = 1;
     let serverDir = config.openrct2;
-    if (/^[1-9][0-9] /.test(input)) {
+    if (/^[1-9][0-9]* /.test(input)) {
       server = parseInt(input.slice(0, input.indexOf(' ')));
       input = input.slice(input.indexOf(' ') + 1).trim();
     }

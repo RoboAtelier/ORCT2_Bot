@@ -26,7 +26,7 @@ async function showScenarios(msg, content) {
   if (input.startsWith('-d') || input.startsWith('--discarded')) {
     if (input.includes(' ')) {
       option = input.slice(0, input.indexOf(' '));
-      input = input.slice(input.indexOf(' ') + 2).trim();
+      input = input.slice(input.indexOf(' ') + 1).trim();
     }
     else {
       option = input;

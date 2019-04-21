@@ -78,7 +78,7 @@ async function startScenarioVote(msg, content) {
       || msg.member.roles.has(config.owner)
     )) {
       
-      //Vote cooldown if not Moderator+ - 5 minutes
+      //Vote cooldown if not Moderator+ - 2 minutes
       const diff = (new Date() - lastChange)/60000;
       if (diff < 2) {
         const timeString = diff === 1 ? 'minute' : 'minutes';
@@ -159,12 +159,12 @@ async function startScenarioVote(msg, content) {
     for (let i = 0; i < 10; i++) {
       choiceString = `${choiceString}${voteEmojis[i]} | ${voteChoices[i].substring(0, voteChoices[i].length - 4)}\n`
     };
-    const voteMsg = await msg.guild.channels.get(config.alertchannel).send(`Choose the next scenario:\n\n${choiceString}${voteEmojis[10]} | New selection of maps`);
+    const voteMsg = await msg.guild.channels.get(config.mapvotechannel).send(`Choose the next scenario:\n\n${choiceString}${voteEmojis[10]} | New selection of maps`);
     
     //Initiate voting
     if (scenarioVote.active === false) {
       scenarioVote.active = true;
-      await msg.channel.send(`Started scenario vote in <#${config.alertchannel}>.`)
+      await msg.channel.send(`Started scenario vote in <#${config.mapvotechannel}>.`)
     };
     scenarioVote.scenarios = scenarios;
     scenarioVote.msg = voteMsg;

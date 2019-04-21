@@ -80,8 +80,14 @@ async function installNewOpenRCT2GameBuild(msg, content) {
       //Shutdown any running servers
       const servers = getServers();
       if (servers.length > 0) {
-        await msg.guild.channels.get(config.mainchannel).send('We\'re updating our OpenRCT2 build soon! Please save your current progress then disconnect.');
-        await msg.guild.channels.get(config.alertchannel).send('We\'re updating our OpenRCT2 build soon! Please save your current progress then disconnect.');
+        if (content.startsWith('-l')) {
+          await msg.guild.channels.get(config.mainchannel).send('We\'re updating our OpenRCT2 build soon! Please save your current progress then disconnect.');
+          await msg.guild.channels.get(config.alertchannel).send('We\'re updating our OpenRCT2 build soon! Please save your current progress then disconnect.');
+        }
+        else {
+          await msg.guild.channels.get(config.mainchannel).send(`We're installing build *${content}* soon! Please save your current progress then disconnect.`);
+          await msg.guild.channels.get(config.alertchannel).send(`We're installing build *${content}* soon! Please save your current progress then disconnect.`);
+        }
         await new Promise((resolve, reject) => {
           setTimeout(() => resolve(), 30000);
         });
@@ -212,7 +218,8 @@ async function installNewOpenRCT2GameBuild(msg, content) {
           })
         };
         await restartMsg.edit('All servers restarted!');
-        await msg.guild.channels.get(config.alertchannel).send('Our OpenRCT2 build has been installed! Check that you are on our version. If not: https://openrct2.org/downloads');
+        await msg.guild.channels.get(config.mainchannel).send('Build has been installed! Please check that you are on a compatible build.');
+        await msg.guild.channels.get(config.alertchannel).send('Our OpenRCT2 build has been updated! Please check that you are on a compatible build. If not: https://openrct2.org/downloads');
       };
       loading = false;
       const oldHash = await readBotData('curinstall');

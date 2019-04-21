@@ -1,13 +1,16 @@
 /** Command module to perform server operations
  * @module svr_ops
- * @requires fs, reader, orct2server
+ * @requires fs, reader, orct2server, orct2web
  */
 const { readdirSync, readFileSync } = require('fs');
 const { checkInstallation } = require('./install');
 const { runServer, killServer } = require('../functions/orct2server');
+const { getServerStatus } = require('../functions/orct2web');
 const { getScenarios, getServerDir } = require('../functions/reader');
 const { config } = require ('../config');
 
+let lastChange = new Date(0);
+let notified = false;
 /**
  * Run a new scenario for a server.
  * 
@@ -62,6 +65,25 @@ async function runNewServerScenario(msg, content) {
   
   //Run Last Autosave
   if (option.includes('a')) {
+    if (!(
+      msg.member.roles.has(config.trusted)
+      || msg.member.roles.has(config.mod)
+      || msg.member.roles.has(config.admin)
+      || msg.member.roles.has(config.owner)
+    )) {
+      const diff = (new Date() - lastChange)/60000;
+      if (diff < 2 && !notified) {
+        notified = true;
+        const timeString = diff === 1 ? 'minute' : 'minutes';
+        await msg.channel.send(`There was a restart attempt recently. You must wait about ${2 - Math.floor(diff)} ${timeString} before starting a new vote.`);
+        return 'Attempted to restart the server. Server restart attempt already happened recently.'
+      };
+      const results = await getServerStatus([`${config.defaultip}:${config.defaultport}`]);
+      if (results.servers.length === 1) {
+        await msg.channel.send('The server is already active.');
+        return 'Attempted to restart the server. Server restart attempt already happened recently.'
+      }
+    }
     await killServer(server);
     const scenario = option.includes('h')
     ? await runServer('AUTOSAVE', server, serverDir, true)
@@ -69,6 +91,8 @@ async function runNewServerScenario(msg, content) {
     if (scenario.length > 0) {
       await msg.channel.send(`Starting up last autosave on Server #${server}.`);
       await msg.guild.channels.get(config.alertchannel).send(`Now resuming last autosave on Server #${server}!`);
+      lastChange = new Date();
+      notified = false;
       return `Successfully loaded last autosave on Server #${server}.`;
     }
     else {
