@@ -71,21 +71,6 @@ async function startScenarioVote(msg, content) {
       await msg.channel.send('Cannot run vote at this time. Installing new OpenRCT2 build.');
       return 'Attempted to start a scenario vote. Build installation in progress.';
     };
-    
-    if (!(
-      msg.member.roles.has(config.mod)
-      || msg.member.roles.has(config.admin)
-      || msg.member.roles.has(config.owner)
-    )) {
-      
-      //Vote cooldown if not Moderator+ - 2 minutes
-      const diff = (new Date() - lastChange)/60000;
-      if (diff < 2) {
-        const timeString = diff === 1 ? 'minute' : 'minutes';
-        await msg.channel.send(`Scenario voting just finished recently. You must wait about ${2 - Math.floor(diff)} ${timeString} before starting a new vote.`);
-        return 'Attempted to start a scenario vote. Scenario vote already finished recently.'
-      };
-    };
 
     let page = 0;
     let index = 1;

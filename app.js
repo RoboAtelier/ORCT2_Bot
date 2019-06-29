@@ -100,14 +100,8 @@ bot.on('message', async msg => {
         //Mod Level Commands
         if (permLvl > 1 && cmdLog === '') {
           
-          //Run OpenRCT2 Scenario on Server
-          if (['changemap', 'chmap', 'run'].includes(cmd)) {
-            cmd = 'svrops';
-            cmdLog = await cmds.svrops.run(msg, content);
-          }
-          
           //Stop OpenRCT2 Server
-          else if (['kill', 'stop'].includes(cmd)) {
+          if (['kill', 'stop'].includes(cmd)) {
             cmd = 'svrops';
             cmdLog = await cmds.svrops.stop(msg, content);
           }
@@ -123,24 +117,6 @@ bot.on('message', async msg => {
             cmd = 'svrconfig';
             cmdLog = await cmds.svrconfig.showGroups(msg, content);
           }
-          
-          //Finalize Server Scenario
-          else if (['finalize', 'fin'].includes(cmd)) {
-            cmd = 'screenshot';
-            cmdLog = await cmds.screenshot.finalize(msg, content);
-          }
-          
-          //Discard Scenarios
-          else if (['remove', 'delete', 'del', 'rm'].includes(cmd)) {
-            cmd = 'move';
-            cmdLog = await cmds.scenarios.moveScenario(msg, content, 'discard');
-          }
-          
-          //Restore Discarded Scenarios
-          else if (['restore', 'res'].includes(cmd)) {
-            cmd = 'move';
-            cmdLog = await cmds.scenarios.moveScenario(msg, content, 'restore');
-          };
         };
         
         //Trusted Level Commands
@@ -155,8 +131,20 @@ bot.on('message', async msg => {
           && cmdLog === ''
         ) {
           
+          //Discard Scenarios
+          if (['remove', 'delete', 'del', 'rm'].includes(cmd)) {
+            cmd = 'move';
+            cmdLog = await cmds.scenarios.moveScenario(msg, content, 'discard');
+          }
+          
+          //Restore Discarded Scenarios
+          else if (['restore', 'res'].includes(cmd)) {
+            cmd = 'move';
+            cmdLog = await cmds.scenarios.moveScenario(msg, content, 'restore');
+          };
+          
           //Preview Scenario
-          if (['preview', 'pvw'].includes(cmd)) {
+          else if (['preview', 'pvw'].includes(cmd)) {
             cmd = 'screenshot';
             cmdLog = await cmds.screenshot.previewMap(msg, content);
           }
@@ -165,6 +153,18 @@ bot.on('message', async msg => {
           else if (['screenshot', 'peek'].includes(cmd)) {
             cmd = 'screenshot';
             cmdLog = await cmds.screenshot.peekServer(msg, content);
+          }
+                    
+          //Finalize Server Scenario
+          else if (['finalize', 'fin'].includes(cmd)) {
+            cmd = 'screenshot';
+            cmdLog = await cmds.screenshot.finalize(msg, content);
+          }
+          
+          //Run OpenRCT2 Scenario on Server
+          else if (['changemap', 'chmap', 'run'].includes(cmd)) {
+            cmd = 'svrops';
+            cmdLog = await cmds.svrops.run(msg, content);
           }
           
           //Vote for New Scenario
