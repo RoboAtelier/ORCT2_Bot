@@ -116,7 +116,7 @@ bot.on('message', async msg => {
           else if (['groups', 'grps'].includes(cmd)) {
             cmd = 'svrconfig';
             cmdLog = await cmds.svrconfig.showGroups(msg, content);
-          }
+          };
         };
         
         //Trusted Level Commands
@@ -141,7 +141,7 @@ bot.on('message', async msg => {
           else if (['restore', 'res'].includes(cmd)) {
             cmd = 'move';
             cmdLog = await cmds.scenarios.moveScenario(msg, content, 'restore');
-          };
+          }
           
           //Preview Scenario
           else if (['preview', 'pvw'].includes(cmd)) {
